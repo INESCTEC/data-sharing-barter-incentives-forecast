@@ -1,0 +1,30 @@
+title VALOREM - PUC1 (forecasts market) - Agents Bid Placement [v0.1]
+
+actor AgentAPP
+participant market_wallet #8d8e8e
+participant REST #b0eede
+database DB #8d8e8e
+
+
+
+#------------------------------------
+own group Bid validation
+
+activate AgentAPP
+activate market_wallet
+AgentAPP->market_wallet:Token transfer w/ "max_payment" no. tokens
+AgentAPP<-market_wallet:Return Tangle message ID
+deactivate market_wallet
+
+
+AgentAPP->REST:POST - Bid details (bid params + Tangle message ID)
+activate REST
+deactivate AgentAPP
+
+activate DB
+REST->DB:Store bid details\ntables:\n- market_session_bid (confirmed=False)\n- market_session_bid_payment (is_solid=False)
+
+deactivate REST
+deactivate DB
+
+end

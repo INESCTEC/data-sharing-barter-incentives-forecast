@@ -1,0 +1,9 @@
+requests
+sklearn
+pandas
+numpy
+loguru
+flake8
+coverage
+pytest
+python-dotenv

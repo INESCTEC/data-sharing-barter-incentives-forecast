@@ -1,0 +1,64 @@
+title VALOREM - PUC1 (forecasts market) - Return tokens to agents wallet [v0.1]
+
+actor AgentAPP #8d8e8e
+entity tangle #8d8e8e
+participant market_wallet #8d8e8e
+participant REST #b0eede
+database DB #8d8e8e
+
+
+#------------------------------------
+own group Transfer balance tokens to agent wallet
+
+parallel 
+market_wallet->REST: Get balance for agents with balance > 1Mi\n(note that <Mi transactions are not valid)
+activate REST
+activate market_wallet
+REST->DB: Query table:\n- market_balance
+activate DB
+deactivate DB
+parallel off
+market_wallet<-REST: Agents w/ balance > 1Mi
+deactivate REST
+deactivate market_wallet
+
+
+loop for each agent (& balance)
+parallel 
+market_wallet->REST: Get agent wallet address
+activate market_wallet
+activate REST
+REST->DB: Query table:\n- market_session_bid
+activate DB
+deactivate DB
+parallel off
+
+market_wallet<-REST: Agent wallet address
+deactivate REST
+
+parallel
+market_wallet->tangle: Transfer tokens (= balance)
+activate tangle
+tangle-->AgentAPP: 
+parallel off
+
+market_wallet<-tangle: Tangle Message ID
+deactivate tangle
+market_wallet<-market_wallet: Validate Tangle Message ID
+
+expandable− #lightgreen if Exists in Tangle & Solid
+parallel
+market_wallet-->REST: Confirm transfer\nRegister transfer out\nUpdate session balance\nUpdate session balance withdraw\nUpdate total balance
+REST-->DB: Update tables:\n- balance_transfer_out\n- market_session_balance (is_withdrawn=True)\n- market_balance (-transfer_amount)\n- market_session_balance_withdraw (register new transfer)
+parallel off
+end
+
+
+expandable− #pink if ID does not exist OR not solid
+market_wallet-->market_wallet: Nothing.
+end
+deactivate market_wallet
+
+end  # end loop
+end
+
