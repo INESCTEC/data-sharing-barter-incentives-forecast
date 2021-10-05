@@ -1,5 +1,7 @@
+import json
 import pandas as pd
 import datetime as dt
+
 from loguru import logger
 from collections import defaultdict
 
@@ -229,6 +231,11 @@ class MarketController:
         mc.show_session_results()
         return True
 
+    def list_user_market_balance(self):
+        balance_list = self.api.get_user_market_balances()
+        logger.info(json.dumps(balance_list, indent=2))
+        logger.info("")
+
     def transfer_tokens_out(self):
         # Important! There cant be open or running sessions, otherwise
         # users balance might change during this sessions and during
@@ -290,6 +297,7 @@ class MarketController:
             logger.exception("Unexpected transfer failure!")
             return False
 
+        # Register each transfer in DB:
         for b in balance_list:
             user_id = b["user"]
             balance_iota = int(b["balance"])
@@ -301,7 +309,7 @@ class MarketController:
                     tangle_msg_id=tangle_msg_id,
                     user_wallet_address=address
                 )
-                b["transfer_id"] = transfer_data["transfer_id"]
+                logger.debug(transfer_data)
             except WalletTransferOutException:
                 logger.exception(f"Failed to register tokens transfer out action.")
                 continue
@@ -362,7 +370,7 @@ class MarketController:
         for ttx in transfer_list:
             tangle_msg_id = ttx["tangle_msg_id"]
             transfer_data = {
-                    "address": ttx["wallet_address"],
+                    "address": ttx["user_wallet_address"],
                     "amount": ttx["amount"],
                     "withdraw_transfer_id": ttx["withdraw_transfer_id"]
                 }

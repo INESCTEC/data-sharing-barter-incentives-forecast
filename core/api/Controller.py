@@ -153,6 +153,14 @@ class Controller(RequestController):
         )
         return response['data']
 
+    def get_user_market_balances(self):
+        response = self.__request_template(
+            endpoint_cls=Endpoint(market_balance.GET, market_balance.uri),
+            log_msg="Getting account balances for market users",
+            exception_cls=MarketAccountException
+        )
+        return response['data']
+
     def get_account_balance(self, user_id=None):
         params = {}
         if user_id:
@@ -391,7 +399,7 @@ class Controller(RequestController):
     def post_transfer_out(self, user_id, amount, tangle_msg_id,
                           user_wallet_address):
         payload = {
-            "user_id": user_id,
+            "user": user_id,
             "amount": amount,
             "tangle_msg_id": tangle_msg_id,
             "user_wallet_address": user_wallet_address,
