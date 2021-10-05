@@ -5,6 +5,7 @@ from loguru import logger
 
 from conf import settings
 from .helpers.wallet_helper import transaction_report
+from .exception.WalletException import InsufficientFundsException
 
 
 class WalletController:
@@ -92,8 +93,27 @@ class WalletController:
         )
         node_response = account.transfer(transfer)
         logger.debug(f"Transferring {amount}i to address {address} ... Ok!")
-        logger.debug(node_response)
         return node_response
+
+    def transfer_tokens_multi_address(self, transfer_list):
+        logger.debug(f"Creating multiple transfer ops:\n{transfer_list}i")
+        account = self.account_manager.get_account(self.alias)
+        account.sync().execute()
+        try:
+            transfer = iw.TransferWithOutputs(
+                outputs=transfer_list,
+                remainder_value_strategy="ReuseAddress"
+            )
+            node_response = account.transfer_with_outputs(transfer)
+            logger.debug(f"Creating multiple transfer ops:\n"
+                         f"{transfer_list}i ... Ok!")
+            return node_response
+        except ValueError as ex:
+            message = ex.args[0]
+            if "insufficient funds" in message:
+                errors = {"message": ex.args[0]}
+                raise InsufficientFundsException(message=message,
+                                                 errors=errors)
 
     def restore(self, user):
         pass

@@ -156,7 +156,7 @@ class Controller(RequestController):
     def get_account_balance(self, user_id=None):
         params = {}
         if user_id:
-            params = {"user_id": user_id}
+            params["user_id"] = user_id
         response = self.__request_template(
             endpoint_cls=Endpoint(market_balance.GET, market_balance.uri),
             log_msg="Getting account balances",
@@ -375,6 +375,19 @@ class Controller(RequestController):
         )
         return response["data"]
 
+    def list_pending_transfer_out(self, user_id=None):
+        params = {}
+        if user_id:
+            params["user_id"] = user_id
+        response = self.__request_template(
+            endpoint_cls=Endpoint(market_transfer_out.GET,
+                                  market_transfer_out.uri),
+            log_msg=f"Listing pending transfers",
+            params=params,
+            exception_cls=WalletTransferOutException
+        )
+        return response["data"]
+
     def post_transfer_out(self, user_id, amount, tangle_msg_id,
                           user_wallet_address):
         payload = {
@@ -387,6 +400,20 @@ class Controller(RequestController):
             endpoint_cls=Endpoint(market_transfer_out.POST,
                                   market_transfer_out.uri),
             log_msg=f"Registering wallet transfer out tokens action - Tangle message ID: {tangle_msg_id}",
+            data=payload,
+            exception_cls=WalletTransferOutException
+        )
+        return response["data"]
+
+    def put_confirm_transfer_out(self, withdraw_transfer_id, is_solid):
+        payload = {
+            "withdraw_transfer_id": withdraw_transfer_id,
+            "is_solid": is_solid,
+        }
+        response = self.__request_template(
+            endpoint_cls=Endpoint(market_transfer_out.PUT,
+                                  market_transfer_out.uri),
+            log_msg=f"Updating wallet transfer out - transfer_id: {withdraw_transfer_id}",
             data=payload,
             exception_cls=WalletTransferOutException
         )

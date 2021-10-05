@@ -1,13 +1,22 @@
 
 import os
 
+from loguru import logger
 from dotenv import load_dotenv
 
-__ENV_PATH__ = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+__ROOT__ = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+__ENV_PATH__ = os.path.join(__ROOT__, '.env')
 load_dotenv(__ENV_PATH__)
 
 from core.MarketController import MarketController
 from core.api.exception.APIException import NoMarketSessionException
+
+
+# logger:
+format = "{time:YYYY-MM-DD HH:mm:ss} | {level:<5} | {message}"
+logger.add("files/logfile.log", format=format, level='DEBUG', backtrace=True)
+logger.info("-" * 79)
+
 
 market = MarketController()
 
@@ -34,6 +43,8 @@ input("Press any key to continue.")
 # Run market session:
 market.run_market_session()
 
-input("Press any key to continue.")
 # Transfer tokens back to clients:
 market.transfer_tokens_out()
+market.validate_tokens_transfer()
+
+

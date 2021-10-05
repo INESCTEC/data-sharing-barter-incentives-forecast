@@ -1,8 +1,7 @@
-import numpy as np
 import pandas as pd
 import datetime as dt
-from time import sleep
 from loguru import logger
+from collections import defaultdict
 
 from conf import settings
 from .api import Controller
@@ -19,6 +18,8 @@ from .market.helpers.units_helpers import (
 )
 
 from .api.exception.APIException import *
+from .wallet.exception.TangleException import *
+from .wallet.exception.WalletException import *
 
 
 class MarketController:
@@ -89,6 +90,20 @@ class MarketController:
             status="open",
             open_ts=dt.datetime.utcnow()
         )
+
+    def get_buyers_bids(self):
+        # Check open session:
+        open_session = self.api.list_last_session(status='open')
+        logger.info(open_session)
+        logger.info("")
+
+        # List bids for each session:
+        bids = self.api.list_session_bids(
+            session_id=open_session["market_session_id"]
+        )
+        logger.info(bids)
+        logger.info("")
+        return bids
 
     def approve_buyers_bids(self):
         # Check open session:
@@ -221,10 +236,14 @@ class MarketController:
         # todo: improve this detection process in the future.
         open_sessions = self.api.list_market_sessions(status="open")
         if len(open_sessions) > 0:
-            raise MarketSessionException("Failed to transfer tokens out. There are still sessions with 'open' status.")
+            raise MarketSessionException("Failed to transfer tokens out. "
+                                         "There are still sessions with "
+                                         "'open' status.")
         running_sessions = self.api.list_market_sessions(status="running")
         if len(running_sessions) > 0:
-            raise MarketSessionException("Failed to transfer tokens out. There are still sessions with 'running' status.")
+            raise MarketSessionException("Failed to transfer tokens out. "
+                                         "There are still sessions with "
+                                         "'running' status.")
 
         # List of balances to transfer
         # Note: user must have balance > MINIMUM_WITHDRAW_AMOUNT (.env)
@@ -232,50 +251,142 @@ class MarketController:
         logger.info(balance_list)
         logger.info("")
 
-        # Transfer tokens out:
-        # 1. Request user address (if non-existent, skips user)
-        # 2. Transfer tokens to user & save node response:
-        # 3. Validate transfer with Tangle Lookup:
-        # 4. POST request to update users balance in database tables
-        i = 0
+        # Prepare multi-transfer operations:
+        transfer_list = []
+        total_transfer = 0
         for b in balance_list:
             user_id = b["user"]
             balance_iota = int(b["balance"])
             try:
                 address = self.api.get_user_wallet_address(user_id=user_id)
+                b["address"] = address
+                transfer_list.append({
+                    "amount": balance_iota,
+                    "address": address
+                })
+                total_transfer += balance_iota
             except UserWalletException:
                 logger.exception(f"Failed to get user {user_id} address.")
                 continue
 
-            try:
-                node_response = self.wallet.transfer_tokens(
-                    amount=balance_iota,
-                    address=address
-                )
-                tangle_msg_id = node_response["id"]
-            except Exception:
-                logger.exception(f"Failed to transfer_tokens to {user_id}.")
-                continue
+        # Market balance:
+        balance = self.wallet.get_balance()
+        balance = balance["available"]
+        print(f"Current balance (market wallet): {balance / 1000000}Mi")
+        print(f"Total to transfer: {total_transfer / 1000000}Mi")
+        print(f"Expected remaining: {(balance - total_transfer) / 1000000}Mi")
 
-            try:
-                sleep(2)  # sleep a bit - let it solidify in tangle:
-                self.tangle.validate_tangle_message(
-                    message_id=tangle_msg_id,
-                    expected_amount=balance_iota,
-                    output_address=address,
-                )
-            except Exception:
-                logger.exception(f"Failed to validate tangle_msg_id {tangle_msg_id}.")
-                continue
+        try:
+            # Create multi-transfer operations:
+            node_response = self.wallet.transfer_tokens_multi_address(
+                transfer_list=transfer_list
+            )
+            tangle_msg_id = node_response["id"]
+            logger.debug(f"Tangle Message ID: {tangle_msg_id}")
+        except InsufficientFundsException as ex:
+            logger.error(ex.errors["message"])
+            return False
+        except Exception as ex:
+            logger.exception("Unexpected transfer failure!")
+            return False
 
+        for b in balance_list:
+            user_id = b["user"]
+            balance_iota = int(b["balance"])
+            address = b["address"]
             try:
-                self.api.post_transfer_out(
+                transfer_data = self.api.post_transfer_out(
                     user_id=user_id,
                     amount=balance_iota,
                     tangle_msg_id=tangle_msg_id,
                     user_wallet_address=address
                 )
+                b["transfer_id"] = transfer_data["transfer_id"]
             except WalletTransferOutException:
                 logger.exception(f"Failed to register tokens transfer out action.")
                 continue
-            i += 1
+
+        # Transfer tokens out:
+        # 1. Request user address (if non-existent, skips user)
+        # 2. Transfer tokens to user & save node response:
+        # 3. Validate transfer with Tangle Lookup:
+        # 4. POST request to update users balance in database tables
+        # for b in balance_list:
+        #     user_id = b["user"]
+        #     balance_iota = int(b["balance"])
+        #     wallet = WalletController()
+        #     market_balance = wallet.get_balance()
+        #     print(market_balance)
+        #     try:
+        #         address = self.api.get_user_wallet_address(user_id=user_id)
+        #     except UserWalletException:
+        #         logger.exception(f"Failed to get user {user_id} address.")
+        #         continue
+        #
+        #     try:
+        #         node_response = self.wallet.transfer_tokens(
+        #             amount=balance_iota,
+        #             address=address
+        #         )
+        #         tangle_msg_id = node_response["id"]
+        #     except Exception:
+        #         logger.exception(f"Failed to transfer_tokens to {user_id}.")
+        #         continue
+        #
+        #     try:
+        #         sleep(2)  # sleep a bit - let it solidify in tangle:
+        #         self.tangle.validate_tangle_message(
+        #             message_id=tangle_msg_id,
+        #             expected_amount=balance_iota,
+        #             output_address=address,
+        #         )
+        #     except Exception:
+        #         logger.exception(f"Failed to validate tangle_msg_id {tangle_msg_id}.")
+        #         continue
+        #
+        #     try:
+        #         self.api.post_transfer_out(
+        #             user_id=user_id,
+        #             amount=balance_iota,
+        #             tangle_msg_id=tangle_msg_id,
+        #             user_wallet_address=address
+        #         )
+        #     except WalletTransferOutException:
+        #         logger.exception(f"Failed to register tokens transfer out action.")
+        #         continue
+        #     i += 1
+
+    def validate_tokens_transfer(self):
+        transfer_list = self.api.list_pending_transfer_out()
+        transfers_by_msg_id = defaultdict(list)
+        for ttx in transfer_list:
+            tangle_msg_id = ttx["tangle_msg_id"]
+            transfer_data = {
+                    "address": ttx["wallet_address"],
+                    "amount": ttx["amount"],
+                    "withdraw_transfer_id": ttx["withdraw_transfer_id"]
+                }
+            transfers_by_msg_id[tangle_msg_id].append(transfer_data)
+
+        for tangle_msg_id, transfer_list in transfers_by_msg_id.items():
+            try:
+                # Validate message ID:
+                self.tangle.validate_tangle_message_multi_output(
+                    message_id=tangle_msg_id,
+                    transfer_list=transfer_list
+                )
+            except (IdNotSolidInTangle, IdNotFoundInTangle) as ex:
+                logger.error(ex.errors["message"])
+                continue
+            except Exception as ex:
+                logger.exception("Unexpected validation failure!")
+                continue
+
+            for tid in transfer_list:
+                try:
+                    self.api.put_confirm_transfer_out(
+                        withdraw_transfer_id=tid["withdraw_transfer_id"],
+                        is_solid=True,
+                    )
+                except WalletTransferOutException:
+                    logger.exception(f"Failed to register tokens transfer out action.")

@@ -378,16 +378,18 @@ class MarketClass:
                     n_hours=self.N_HOURS,
                 )
                 logger.debug(
-                    f"Sellers revenue split:\n{sellers_revenue_split}")  # noqa
+                    f"Sellers revenue split:\n{sellers_revenue_split}")
                 # Assign seller revenue
                 logger.debug("Storing revenue in sellers class ...")
-                self.buyers_data[buyer_id].set_payment_split(sellers_revenue_split)  # noqa
+                self.buyers_data[buyer_id].set_payment_split(
+                    sellers_revenue_split
+                )
                 for seller_id in sellers_revenue_split.keys():
                     _r = sellers_revenue_split[seller_id].get("abs_revenue", 0)
                     self.sellers_data[seller_id].increment_revenue(_r)
                 logger.debug("Storing revenue in sellers class ... Ok!")
                 logger.debug(
-                    f"Distributing revenue ... Ok! ({time() - t0:.2f}s)")  # noqa
+                    f"Distributing revenue ... Ok! ({time() - t0:.2f}s)")
 
     def save_session_results(self):
         """
@@ -400,6 +402,26 @@ class MarketClass:
         for cls in self.sellers_data.values():
             self.mkt_sess.set_seller_result(cls)
         logger.info("Saving session results ... Ok!")
+
+        # Confirm if there are no errors in market session results:
+        fee = self.mkt_sess.total_market_fee
+        payments = [v["has_to_pay"] for k, v in self.mkt_sess.buyers_results.items()]
+        revenues = [v["has_to_receive"] for k, v in self.mkt_sess.sellers_results.items()]
+        logger.info("")
+        logger.info("Validating session results:")
+        logger.debug("Market fee:", self.mkt_sess.total_market_fee)
+        logger.debug("Buyers payments:")
+        logger.debug(payments)
+        logger.debug("Total Buyers payments:", sum(payments))
+        logger.debug("Sellers revenue:")
+        logger.debug(revenues)
+        logger.debug("Total Sellers Revenue:", sum(revenues))
+        result = sum(payments) - fee - sum(revenues)
+        logger.debug(f"Validation: {sum(payments)} - {fee} - {sum(revenues)} = {result}")
+        is_valid = round(result, 9) == 0.0
+        logger.info(f"Valid Session: {is_valid}")
+        if not is_valid:
+            raise ValueError("Payments - Fee - Revenues != 0. Invalid session.")
 
     def run_session(self):
         """
@@ -499,6 +521,7 @@ class MarketClass:
         # -- Process market fee payment (to market superuser):
         fees_iota = convert_mi_to_i(self.mkt_sess.total_market_fee)
         # -- Todo: Adicionar metodo para saber admin user ID:
+        # -- Todo: Adicionar Controlo de exceptions:
         admin_user_id = 1
         api_controller.post_session_balance(
             user=admin_user_id,
@@ -509,23 +532,21 @@ class MarketClass:
         # -- Process payments for agents (updated market account)
         for buyer_id, buyer_info in self.mkt_sess.buyers_results.items():
             payment_iota = convert_mi_to_i(buyer_info["has_to_pay"])
-            rsp = api_controller.post_session_balance(
+            api_controller.post_session_balance(
                 user=buyer_id,
                 market_session=market_session_id,
                 amount=-payment_iota,
                 transaction_type="payment"
             )
-            print()
         # -- Process revenue for agents (updated market account)
         for seller_id, seller_info in self.mkt_sess.sellers_results.items():
             revenue_iota = convert_mi_to_i(seller_info["has_to_receive"])
-            rsp = api_controller.post_session_balance(
+            api_controller.post_session_balance(
                 user=seller_id,
                 market_session=market_session_id,
                 amount=revenue_iota,
                 transaction_type="revenue"
             )
-            print()
 
     def upload_forecasts(self, user_id, forecasts):
         # upload forecasts to DB
@@ -544,7 +565,8 @@ class MarketClass:
         b_min_ = convert_mi_to_i(self.mkt_sess.b_min)
         b_max_ = convert_mi_to_i(self.mkt_sess.b_max)
 
-        # p.e. verificar se à 6ta sessão já n deviamos mudar session_date
+        # -- Todo: Adicionar Controlo de exceptions:
+        # -- Todo: verificar se à 6ta sessão já n deviamos mudar session_date
         api_controller.create_market_session(
             session_number=self.mkt_sess.session_number + 1,
             market_price=market_price_,
