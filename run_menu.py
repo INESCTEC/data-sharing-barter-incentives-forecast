@@ -89,6 +89,7 @@ def market_menu():
         print("4  - Close market session")
         print("5  - Run market session")
         print("6  - Transfer token balance back to agents")
+        print("7  - Validate token transfers")
         _sep()
         print("9 - Return to previous menu.")
         print("0 - Exit")
@@ -130,6 +131,12 @@ def market_menu():
             try:
                 # Transfer tokens back to clients:
                 market.transfer_tokens_out()
+            except MarketSessionException as ex:
+                logger.exception(repr(ex))
+        elif choice == "7":
+            try:
+                # Transfer tokens back to clients:
+                market.validate_tokens_transfer()
             except MarketSessionException as ex:
                 logger.exception(repr(ex))
         elif choice == "9":
