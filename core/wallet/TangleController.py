@@ -5,7 +5,7 @@ from loguru import logger
 from conf import settings
 from core.wallet.exception.TangleException import (
     IdNotFoundInTangle,
-    IdNotSolidInTangle,
+    IdNotConfirmedInTangle,
 )
 
 
@@ -36,22 +36,45 @@ class TangleController:
         output = transaction["essence"]["outputs"]
         return output
 
+    @staticmethod
+    def __is_tangle_msg_id_confirmed(message_metadata):
+        solid = message_metadata["is_solid"]
+        included_in_ledger = message_metadata["ledger_inclusion_state"]["state"].lower() == "included"
+        if solid and included_in_ledger:
+            logger.debug("Message is solid and included in ledger milestone.")
+            return True
+        elif solid and (not included_in_ledger):
+            logger.error("Message is solid and included in ledger milestone.")
+            return False
+        elif (not solid) and included_in_ledger:
+            logger.error("Message is included in ledger but not solid.")
+            return False
+        else:
+            logger.error("Message not solid nor included in ledger milestone.")
+
     def validate_tangle_message(self,
                                 message_id,
                                 output_address,
                                 expected_amount):
-
         logger.debug(f"Validating tangle message ID {message_id}")
-        meta = self.get_message_metadata(message_id)
-        message_output = self.get_message_output(message_id)
 
-        # -- Check if is solid:
-        if not meta["is_solid"]:
-            raise Exception("Message is not solid yet.")
-        else:
-            logger.debug(f"Message ID exists and {message_id} is solid.")
+        try:
+            # -- Get Message metadata details:
+            meta = self.get_message_metadata(message_id)
+            # -- Get message output transactions details:
+            message_output = self.get_message_output(message_id)
+        except ValueError as ex:
+            errors = {"message": ex.args[0]}
+            raise IdNotFoundInTangle(message=ex.args, errors=errors)
 
-        # -- Get message output transactions details:
+        # Check if tangle message ID is solid & included in ledger milestone
+        confirmed = self.__is_tangle_msg_id_confirmed(message_metadata=meta)
+        if not confirmed:
+            message = "Message ID is not confirmed in tangle yet. Try again later."
+            errors = {"message": message}
+            raise IdNotConfirmedInTangle(message, errors)
+
+        # Filter transactions to desired output address:
         transactions_out = [
             x for x in message_output
             if x["signature_locked_single"]["address"] == output_address
@@ -71,43 +94,50 @@ class TangleController:
             raise Exception(f"Expected amount ({expected_amount}) differs "
                             f"from amount in Tangle ({tangle_amount})")
 
+        logger.debug(f"Amount in tangle ({tangle_amount}) matches "
+                     f"expected amount ({expected_amount})")
         logger.debug(f"Validating tangle message ID {message_id} ... Ok!")
 
         return True
 
     def validate_tangle_message_multi_output(self, message_id, transfer_list):
-
         logger.debug(f"Validating tangle message ID {message_id}")
 
         try:
+            # -- Get Message metadata details:
             meta = self.get_message_metadata(message_id)
+            # -- Get message output transactions details:
             message_output = self.get_message_output(message_id)
         except ValueError as ex:
             errors = {"message": ex.args[0]}
             raise IdNotFoundInTangle(message=ex.args, errors=errors)
 
-        # -- Check if is solid:
-        if not meta["is_solid"]:
-            message = "Message ID is not solid yet."
+        # Check if tangle message ID is solid & included in ledger milestone
+        confirmed = self.__is_tangle_msg_id_confirmed(message_metadata=meta)
+        if not confirmed:
+            message = "Message ID is not confirmed in tangle yet. Try again later."
             errors = {"message": message}
-            raise IdNotSolidInTangle(message=message, errors=errors)
-        else:
-            logger.debug(f"Message ID exists and {message_id} is solid.")
+            raise IdNotConfirmedInTangle(message, errors)
 
-        # -- Get message output transactions details:
+        # -- Get message output transactions for expected output address:
         expected_addresses = [x["address"] for x in transfer_list]
         transactions_out = [
             x for x in message_output
             if x["signature_locked_single"]["address"] in expected_addresses
         ]
 
+        # Verify if each expected transaction is in tangle,
+        # with correct amount, to the correct output address
         for tt in transactions_out:
             # Verify max_payment amount (IOTA) writen in Tangle transaction:
             tangle_amount = tt["signature_locked_single"]["amount"]
             tangle_address = tt["signature_locked_single"]["address"]
-            expected_amount = [x["amount"] for x in transfer_list if x["address"] == tangle_address][0]
+            expected_amount = [x["amount"] for x in transfer_list
+                               if x["address"] == tangle_address][0]
             if tangle_amount != expected_amount:
-                logger.warning(f"Expected amount ({tangle_amount}) differs from tangle_amount ({expected_amount}) for address {tangle_address}")
+                logger.warning(f"Expected amount ({tangle_amount}) differs "
+                               f"from tangle_amount ({expected_amount}) "
+                               f"for address {tangle_address}")
 
         logger.debug(f"Validating tangle message ID {message_id} ... Ok!")
         return True
