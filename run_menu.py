@@ -82,7 +82,12 @@ def installation_menu():
 
 
 def market_configuration():
-    market = MarketController()
+    try:
+        market = MarketController()
+    except Exception as ex:
+        logger.exception("Unable to login to the platform")
+        input("Press any key to return to main menu.")
+        return
 
     while True:
         _clear_console()
@@ -128,7 +133,12 @@ def market_configuration():
 
 
 def market_menu():
-    market = MarketController()
+    try:
+        market = MarketController()
+    except Exception as ex:
+        logger.exception("Unable to login to the platform")
+        input("Press any key to return to main menu.")
+        return
 
     while True:
         _clear_console()
@@ -282,5 +292,4 @@ if __name__ == '__main__':
     wallet_path = os.path.join(settings.WALLET_STORAGE_PATH, "wallet-db")
     if not os.path.exists(wallet_path):
         main_no_installation()
-    else:
-        main()
+    main()
