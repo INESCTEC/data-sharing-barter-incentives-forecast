@@ -93,6 +93,27 @@ class MarketController:
             open_ts=dt.datetime.utcnow()
         )
 
+    def register_market_wallet_address(self, address):
+        response = self.api.register_market_wallet_address(address=address)
+        logger.info(response)
+        logger.info("")
+        return response
+
+    def get_market_wallet_address(self):
+        response = self.api.get_market_wallet_address()
+        logger.info(response)
+        logger.info("")
+        return response
+
+    def update_market_wallet_address(self, old_address, new_address):
+        response = self.api.update_market_wallet_address(
+            old_address=old_address,
+            new_address=new_address
+        )
+        logger.info(response)
+        logger.info("")
+        return response
+
     def get_buyers_bids(self):
         # Check open session:
         open_session = self.api.list_last_session(status='open')

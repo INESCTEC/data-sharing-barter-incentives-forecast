@@ -113,22 +113,6 @@ class Controller(RequestController):
             logger.error(log_msg + f"\n{rsp.json()}")
             raise LoginException(message=log_msg, errors=rsp.json())
 
-    def create_wallet_account(self):
-        response = self.__request_template(
-            endpoint_cls=Endpoint(wallet_account.GET, wallet_account.uri),
-            log_msg="Creating wallet account",
-            exception_cls=WalletException
-        )
-        return response['data']
-
-    def create_market_wallet(self):
-        response = self.__request_template(
-            endpoint_cls=Endpoint(wallet_create.GET, wallet_create.uri),
-            log_msg="Creating wallet",
-            exception_cls=WalletException
-        )
-        return response['data']
-
     def get_user_wallet_address(self, user_id):
         params = {"user_id": user_id}
         response = self.__request_template(
@@ -358,7 +342,34 @@ class Controller(RequestController):
             endpoint_cls=Endpoint(market_wallet_address.GET,
                                   market_wallet_address.uri),
             log_msg=f"Getting market wallet address",
-            exception_cls=MarketSessionException
+            exception_cls=MarketWalletAddressException
+        )
+        return response['data']
+
+    def register_market_wallet_address(self, address):
+        payload = {
+            "wallet_address": address,
+        }
+        response = self.__request_template(
+            endpoint_cls=Endpoint(market_wallet_address.POST,
+                                  market_wallet_address.uri),
+            log_msg=f"Getting market wallet address",
+            data=payload,
+            exception_cls=MarketWalletAddressException
+        )
+        return response['data']
+
+    def update_market_wallet_address(self, old_address, new_address):
+        payload = {
+            "old_wallet_address": old_address,
+            "new_wallet_address": new_address,
+        }
+        response = self.__request_template(
+            endpoint_cls=Endpoint(market_wallet_address.PUT,
+                                  market_wallet_address.uri),
+            log_msg=f"Getting market wallet address",
+            data=payload,
+            exception_cls=MarketWalletAddressException
         )
         return response['data']
 
