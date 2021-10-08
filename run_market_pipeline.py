@@ -17,32 +17,33 @@ logger.info("-" * 79)
 
 
 market = MarketController()
-#
-# try:
-#     # Create first market session:
-#     market.open_market_session()
-# except NoMarketSessionException:
-#     pass
-#
-# cf = input("A new market session is open. Place your bids.\n"
-#            "After, confirm to continue to bid approval.\n"
-#            "> Confirm (Y/n)")
-# if cf.lower() not in ["y", "n"]:
-#     raise IOError("Input error. Valid inputs are y-yes or n-no")
-#
-# # Approve buyers bids:
-# market.approve_buyers_bids()
-#
-# input("Press any key to continue.")
-# # Close market session (no more bids):
-# market.close_market_session()
-#
-# input("Press any key to continue.")
-# # Run market session:
-# market.run_market_session()
+
+try:
+    # Create first market session:
+    market.open_market_session()
+except NoMarketSessionException:
+    pass
+
+cf = input("A new market session is open. Place your bids.\n"
+           "After, confirm to continue to bid approval.\n"
+           "> Confirm (Y/n)")
+if cf.lower() not in ["y", "n"]:
+    raise IOError("Input error. Valid inputs are y-yes or n-no")
+
+# Approve buyers bids:
+market.approve_buyers_bids()
+
+input("Press any key to continue.")
+# Close market session (no more bids):
+market.close_market_session()
+
+input("Press any key to continue.")
+# Run market session:
+market.run_market_session()
 
 # Transfer tokens back to clients:
+# market.get_market_wallet_address()
 market.transfer_tokens_out()
-# market.validate_tokens_transfer()
+market.validate_tokens_transfer()
 
 
