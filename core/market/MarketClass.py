@@ -211,6 +211,9 @@ class MarketClass:
         :param market_x_full: Market dataset
         :return:
         """
+        # todo: -- market_x_full -> adaptar para criar vários lags diferentes (por seller)
+        #  depois, filtrar sellers q n têm dados para as ultimas X horas (X = nº lags)
+        #  depois, selecionar features com maior correlação com série de buyer
         _cols = [x for x in market_x_full.columns
                  if int(x.split('__')[1]) != agent_id]
         return market_x_full[_cols]
