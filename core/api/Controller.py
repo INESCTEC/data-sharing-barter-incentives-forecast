@@ -344,7 +344,7 @@ class Controller(RequestController):
             log_msg=f"Getting market wallet address",
             exception_cls=MarketWalletAddressException
         )
-        return response['data']
+        return response['data']["wallet_address"]
 
     def register_market_wallet_address(self, address):
         payload = {

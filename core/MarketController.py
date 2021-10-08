@@ -276,6 +276,7 @@ class MarketController:
         # List of balances to transfer
         # Note: user must have balance > MINIMUM_WITHDRAW_AMOUNT (.env)
         balance_list = self.api.get_balances_to_transfer()
+        balance_list = [x for x in balance_list if x["user"] != 1]
         logger.info(balance_list)
         logger.info("")
 
@@ -413,9 +414,10 @@ class MarketController:
 
             for tid in transfer_list:
                 try:
-                    self.api.put_confirm_transfer_out(
+                    response = self.api.put_confirm_transfer_out(
                         withdraw_transfer_id=tid["withdraw_transfer_id"],
                         is_solid=True,
                     )
+                    logger.debug(f"Transfer out response: {response}")
                 except WalletTransferOutException:
                     logger.exception(f"Failed to register tokens transfer out action.")
