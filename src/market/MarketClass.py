@@ -5,24 +5,24 @@ from loguru import logger
 from joblib import Parallel, delayed
 
 # -- Helper funcs:
-from core.market.helpers.market_helpers import (
+from src.market.helpers.market_helpers import (
     calc_buyer_payment,
     calc_sellers_revenue,
     market_price_update_parallel,
 )
 
 # -- Market entities classes:
-from core.market.BuyerClass import BuyerClass
-from core.market.SellerClass import SellerClass
-from core.market.SessionClass import SessionClass
-from core.market.util.custom_exceptions import (
+from src.market.BuyerClass import BuyerClass
+from src.market.SellerClass import SellerClass
+from src.market.SessionClass import SessionClass
+from src.market.util.custom_exceptions import (
     NoMarketDataException,
     NoMarketBuyersExceptions
 )
 
 # -- Mock data imports:
-from core.market.helpers.model_helpers import create_forecast
-from core.market.helpers.units_helpers import convert_mi_to_i
+from src.market.helpers.model_helpers import create_forecast
+from src.market.helpers.units_helpers import convert_mi_to_i
 
 
 class MarketClass:

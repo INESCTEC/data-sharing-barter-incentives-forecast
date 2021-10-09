@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from market.core.helpers.units_helpers import (
+from src.market.helpers.units_helpers import (
     convert_session_data_to_mi,
     convert_buyers_bids_to_mi,
     convert_i_to_mi,

@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from market.core.util.mock import (
+from src.market.util.mock import (
     AgentsGenerator,
     SessionGenerator,
     MeasurementsGenerator

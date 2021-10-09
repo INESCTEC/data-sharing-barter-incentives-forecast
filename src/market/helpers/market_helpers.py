@@ -6,8 +6,8 @@ from loguru import logger
 from functools import partial
 from joblib import Parallel, delayed
 
-from core.market.util.decorators import timeit
-from core.market.helpers.model_helpers import (
+from src.market.util.decorators import timeit
+from src.market.helpers.model_helpers import (
     calculate_gain,
     calculate_noise_and_gain
 )

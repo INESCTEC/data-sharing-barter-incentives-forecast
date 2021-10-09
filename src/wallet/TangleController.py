@@ -3,7 +3,7 @@ import iota_client
 from loguru import logger
 
 from conf import settings
-from core.wallet.exception.TangleException import (
+from src.wallet.exception.TangleException import (
     IdNotFoundInTangle,
     IdNotConfirmedInTangle,
 )

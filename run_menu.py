@@ -7,10 +7,10 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 
 from conf import settings
-from core.wallet import WalletController
-from core import MarketController
+from src.wallet import WalletController
+from src.MarketController import MarketController
 
-from core.api.exception.APIException import (
+from src.api.exception.APIException import (
     NoMarketSessionException,
     MarketSessionException,
     MarketWalletAddressException,

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 __ENV__ = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(__ENV__)
 
-from core.wallet.TangleController import TangleController
+from src.wallet.TangleController import TangleController
 
 
 MESSAGE_ID = "e2dc55d91b6d659be777b962aabee8d3686a68c444de9992d223ad513c7d517b"
