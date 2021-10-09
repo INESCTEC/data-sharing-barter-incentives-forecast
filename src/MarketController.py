@@ -171,7 +171,7 @@ class MarketController:
                         tangle_msg_id=b["tangle_msg_id"]
                     )
                     logger.info(rsp)
-            except Exception as ex:
+            except Exception:
                 logger.exception("Unable to place bid.")
 
     def close_market_session(self):
@@ -233,7 +233,7 @@ class MarketController:
         # ################################
         # Check market buyers/sellers ID's
         # ################################
-        buyers_ids = [x["user"] for x in buyers_bids if x["confirmed"] == True]
+        buyers_ids = [x["user"] for x in buyers_bids if x["confirmed"] is True]
         sellers_ids = active_sellers
 
         # ################################
@@ -351,7 +351,7 @@ class MarketController:
         except InsufficientFundsException as ex:
             logger.error(ex.errors["message"])
             return False
-        except Exception as ex:
+        except Exception:
             logger.exception("Unexpected transfer failure!")
             return False
 
@@ -369,7 +369,8 @@ class MarketController:
                 )
                 logger.debug(transfer_data)
             except WalletTransferOutException:
-                logger.exception(f"Failed to register tokens transfer out action.")
+                logger.exception("Failed to register tokens transfer out "
+                                 "action.")
                 continue
 
         # Transfer tokens out:
@@ -418,7 +419,8 @@ class MarketController:
         #             user_wallet_address=address
         #         )
         #     except WalletTransferOutException:
-        #         logger.exception(f"Failed to register tokens transfer out action.")
+        #         logger.exception(f"Failed to register tokens transfer
+        #         out action.")
         #         continue
         #     i += 1
 
@@ -433,10 +435,10 @@ class MarketController:
         for ttx in transfer_list:
             tangle_msg_id = ttx["tangle_msg_id"]
             transfer_data = {
-                    "address": ttx["user_wallet_address"],
-                    "amount": ttx["amount"],
-                    "withdraw_transfer_id": ttx["withdraw_transfer_id"]
-                }
+                "address": ttx["user_wallet_address"],
+                "amount": ttx["amount"],
+                "withdraw_transfer_id": ttx["withdraw_transfer_id"]
+            }
             transfers_by_msg_id[tangle_msg_id].append(transfer_data)
 
         for tangle_msg_id, transfer_list in transfers_by_msg_id.items():
@@ -449,7 +451,7 @@ class MarketController:
             except (IdNotSolidInTangle, IdNotFoundInTangle) as ex:
                 logger.error(ex.errors["message"])
                 continue
-            except Exception as ex:
+            except Exception:
                 logger.exception("Unexpected validation failure!")
                 continue
 
@@ -461,7 +463,8 @@ class MarketController:
                     )
                     logger.debug(f"Transfer out response: {response}")
                 except WalletTransferOutException:
-                    logger.exception(f"Failed to register tokens transfer out action.")
+                    logger.exception("Failed to register tokens transfer out "
+                                     "action.")
 
     def create_market_report(self):
         # todo: Fetch session bids

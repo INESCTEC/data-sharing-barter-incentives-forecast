@@ -341,7 +341,7 @@ class Controller(RequestController):
         response = self.__request_template(
             endpoint_cls=Endpoint(market_wallet_address.GET,
                                   market_wallet_address.uri),
-            log_msg=f"Getting market wallet address",
+            log_msg="Getting market wallet address",
             exception_cls=MarketWalletAddressException
         )
         return response['data']["wallet_address"]
@@ -353,7 +353,7 @@ class Controller(RequestController):
         response = self.__request_template(
             endpoint_cls=Endpoint(market_wallet_address.POST,
                                   market_wallet_address.uri),
-            log_msg=f"Getting market wallet address",
+            log_msg="Getting market wallet address",
             data=payload,
             exception_cls=MarketWalletAddressException
         )
@@ -367,7 +367,7 @@ class Controller(RequestController):
         response = self.__request_template(
             endpoint_cls=Endpoint(market_wallet_address.PUT,
                                   market_wallet_address.uri),
-            log_msg=f"Getting market wallet address",
+            log_msg="Getting market wallet address",
             data=payload,
             exception_cls=MarketWalletAddressException
         )
@@ -403,7 +403,7 @@ class Controller(RequestController):
         response = self.__request_template(
             endpoint_cls=Endpoint(market_transfer_out.GET,
                                   market_transfer_out.uri),
-            log_msg=f"Listing pending transfers",
+            log_msg="Listing pending transfers",
             params=params,
             exception_cls=WalletTransferOutException
         )

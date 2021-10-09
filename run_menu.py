@@ -84,7 +84,7 @@ def installation_menu():
 def market_configuration():
     try:
         market = MarketController()
-    except Exception as ex:
+    except Exception:
         logger.exception("Unable to login to the platform")
         input("Press any key to return to main menu.")
         return
@@ -135,7 +135,7 @@ def market_configuration():
 def market_menu():
     try:
         market = MarketController()
-    except Exception as ex:
+    except Exception:
         logger.exception("Unable to login to the platform")
         input("Press any key to return to main menu.")
         return
@@ -163,50 +163,50 @@ def market_menu():
                 market.open_market_session()
             except NoMarketSessionException:
                 pass
-            except MarketSessionException as ex:
+            except MarketSessionException:
                 pass
         if choice == "2":
             try:
                 # Create first market session:
                 bids = market.get_buyers_bids()
                 pprint(bids)
-            except Exception as ex:
+            except Exception:
                 pass
         elif choice == "3":
             # Approve buyers bids:
             try:
                 market.approve_buyers_bids()
-            except Exception as ex:
+            except Exception:
                 pass
         elif choice == "4":
             # Close market session (no more bids):
             try:
                 market.close_market_session()
-            except Exception as ex:
+            except Exception:
                 pass
         elif choice == "5":
             # Run market session:
             try:
                 market.run_market_session()
-            except Exception as ex:
+            except Exception:
                 pass
         elif choice == "6":
             try:
                 # List users market balance:
                 market.list_user_market_balance()
-            except Exception as ex:
+            except Exception:
                 pass
         elif choice == "7":
             try:
                 # Transfer tokens back to clients:
                 market.transfer_tokens_out()
-            except MarketSessionException as ex:
+            except MarketSessionException:
                 pass
         elif choice == "8":
             try:
                 # Transfer tokens back to clients:
                 market.validate_tokens_transfer()
-            except MarketSessionException as ex:
+            except MarketSessionException:
                 pass
         elif choice == "9":
             return

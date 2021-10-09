@@ -1,0 +1,17 @@
+stages:
+  - test-market
+
+test-market:
+  image:
+    name: python:3.8
+    entrypoint: ["/usr/bin/env"]
+  stage: test-market
+  script:
+    - pip install -r requirements.txt
+    - flake8
+    - cd src/market
+    - coverage run -m pytest
+    - coverage report -m
+  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
+
+

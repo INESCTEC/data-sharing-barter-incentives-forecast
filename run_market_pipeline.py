@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
-from core.MarketController import MarketController
-from core.api.exception.APIException import NoMarketSessionException
+from src.MarketController import MarketController
+from src.api.exception.APIException import NoMarketSessionException
 
 
 # logger:
@@ -45,5 +45,3 @@ market.run_market_session()
 # market.get_market_wallet_address()
 market.transfer_tokens_out()
 market.validate_tokens_transfer()
-
-
