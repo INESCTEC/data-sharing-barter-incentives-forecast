@@ -96,7 +96,8 @@ class WalletController:
         return node_response
 
     def transfer_tokens_multi_address(self, transfer_list):
-        logger.debug(f"Creating multiple transfer ops:\n{transfer_list}i")
+        logger.debug(f"Creating multiple transfer ops")
+        logger.debug(transfer_list)
         account = self.account_manager.get_account(self.alias)
         account.sync().execute()
         try:
@@ -105,8 +106,7 @@ class WalletController:
                 remainder_value_strategy="ReuseAddress"
             )
             node_response = account.transfer_with_outputs(transfer)
-            logger.debug(f"Creating multiple transfer ops:\n"
-                         f"{transfer_list}i ... Ok!")
+            logger.debug(f"Creating multiple transfer ops... Ok!")
             return node_response
         except ValueError as ex:
             message = ex.args[0]

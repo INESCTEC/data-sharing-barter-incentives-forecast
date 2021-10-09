@@ -131,7 +131,7 @@ class Controller(RequestController):
         params = {"balance__gte": settings.MINIMUM_WITHDRAW_AMOUNT}
         response = self.__request_template(
             endpoint_cls=Endpoint(market_balance.GET, market_balance.uri),
-            log_msg="Getting account balances to transfer (<1Mi)",
+            log_msg="Getting account balances to transfer (>1Mi)",
             params=params,
             exception_cls=MarketAccountException
         )
@@ -395,7 +395,9 @@ class Controller(RequestController):
         return response["data"]
 
     def list_pending_transfer_out(self, user_id=None):
-        params = {}
+        params = {
+            "is_solid": False
+        }
         if user_id:
             params["user_id"] = user_id
         response = self.__request_template(

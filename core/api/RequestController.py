@@ -38,7 +38,7 @@ class RequestController:
         """
 
         url = self.remote_uri + endpoint.uri
-        logger.debug(f"Request to: {url}")
+        logger.debug(f"[{endpoint.http_method}]Request to: {url}")
 
         data = None if data is None else json.dumps(data)
         headers_ = self.headers

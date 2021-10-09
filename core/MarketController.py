@@ -36,19 +36,6 @@ class MarketController:
         self.api.login(email=settings.MARKET_EMAIL,
                        password=settings.MARKET_PASSWORD)
 
-    def deploy_market(self):
-        # Create market roles:
-        logger.debug("Creating market roles ...")
-        self.api.create_market_role(role="buyer")
-        self.api.create_market_role(role="seller")
-        logger.debug("Creating market roles ... Ok!")
-
-        # Create market wallet:
-        logger.debug("Creating market wallet ...")
-        self.wallet.create_wallet(store_mnemonic=True)
-        self.wallet.create_account()
-        logger.debug("Creating market wallet ... Ok!")
-
     def open_market_session(self):
         """
         If there are no market sessions, creates 1st session w/ default params
@@ -94,18 +81,36 @@ class MarketController:
         )
 
     def register_market_wallet_address(self, address):
+        """
+        Register new market wallet address
+
+        :param str address: Market wallet address
+        :return:
+        """
         response = self.api.register_market_wallet_address(address=address)
         logger.info(response)
         logger.info("")
         return response
 
     def get_market_wallet_address(self):
+        """
+        Request Market wallet address
+
+        :return:
+        """
         response = self.api.get_market_wallet_address()
         logger.info(response)
         logger.info("")
         return response
 
     def update_market_wallet_address(self, old_address, new_address):
+        """
+        Update current market wallet address
+
+        :param str old_address: Address to be updated
+        :param str new_address: Address to update to
+        :return:
+        """
         response = self.api.update_market_wallet_address(
             old_address=old_address,
             new_address=new_address
@@ -115,6 +120,11 @@ class MarketController:
         return response
 
     def get_buyers_bids(self):
+        """
+        Request buyers bids for last 'open' session
+
+        :return:
+        """
         # Check open session:
         open_session = self.api.list_last_session(status='open')
         logger.info(open_session)
@@ -129,6 +139,11 @@ class MarketController:
         return bids
 
     def approve_buyers_bids(self):
+        """
+        Approve buyers bids for current session
+
+        :return:
+        """
         # Check open session:
         open_session = self.api.list_last_session(status='open')
         logger.info(open_session)
@@ -160,12 +175,17 @@ class MarketController:
                 logger.exception("Unable to place bid.")
 
     def close_market_session(self):
-        # List last market 'staged' sessions:
+        """
+        Close current 'OPEN' market session
+
+        :return:
+        """
+        # List last market 'open' sessions:
         open_session = self.api.list_last_session(status='open')
         logger.info(open_session)
         logger.info("")
 
-        # Change market session status from 'STAGED' to 'OPEN':
+        # Change market session status from 'OPEN' to 'CLOSED':
         self.api.update_market_session(
             session_id=open_session["market_session_id"],
             status="closed",
@@ -173,6 +193,12 @@ class MarketController:
         )
 
     def run_market_session(self):
+        """
+        Run last 'closed' market session. Session state is updated to
+        'running' during execution and to 'finished' once it is complete.
+
+        :return:
+        """
         # todo: change this. right fixed to get always same measurements (.csv)
         market_launch_time = '2020-05-01 10:00:03.4536'
         market_launch_time = pd.to_datetime(market_launch_time).tz_localize(
@@ -253,11 +279,21 @@ class MarketController:
         return True
 
     def list_user_market_balance(self):
+        """
+        List current market balance for every user registered in the market
+
+        :return:
+        """
         balance_list = self.api.get_user_market_balances()
         logger.info(json.dumps(balance_list, indent=2))
         logger.info("")
 
     def transfer_tokens_out(self):
+        """
+        Transfer current balances (IOTA tokens) back to each user wallet
+
+        :return:
+        """
         # Important! There cant be open or running sessions, otherwise
         # users balance might change during this sessions and during
         # token transfer out. Leading to bad updates in database.
@@ -387,6 +423,11 @@ class MarketController:
         #     i += 1
 
     def validate_tokens_transfer(self):
+        """
+        Validate all balance transfers and update its state in the platform
+
+        :return:
+        """
         transfer_list = self.api.list_pending_transfer_out()
         transfers_by_msg_id = defaultdict(list)
         for ttx in transfer_list:
@@ -421,3 +462,10 @@ class MarketController:
                     logger.debug(f"Transfer out response: {response}")
                 except WalletTransferOutException:
                     logger.exception(f"Failed to register tokens transfer out action.")
+
+    def create_market_report(self):
+        # todo: Fetch session bids
+        # todo: Fetch session balances
+        # todo: Fetch transfers
+        # todo: Fetch current balances
+        pass
