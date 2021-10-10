@@ -55,9 +55,9 @@ def main():
 
         if choice == "1":
             market_menu()
-        if choice == "2":
+        elif choice == "2":
             market_configuration()
-        if choice == "3":
+        elif choice == "3":
             wallet_menu()
         elif choice == "0":
             exit("Exit.")
@@ -107,12 +107,12 @@ def market_configuration():
                 market.register_market_wallet_address(address=address)
             except MarketWalletAddressException:
                 pass
-        if choice == "2":
+        elif choice == "2":
             try:
                 market.get_market_wallet_address()
             except MarketWalletAddressException:
                 logger.error("Failed to get wallet address.")
-        if choice == "3":
+        elif choice == "3":
             try:
                 old_address = input("Enter market wallet address (old): ")
                 new_address = input("Enter market wallet address (new): ")
@@ -165,7 +165,7 @@ def market_menu():
                 pass
             except MarketSessionException:
                 pass
-        if choice == "2":
+        elif choice == "2":
             try:
                 # Create first market session:
                 bids = market.get_buyers_bids()
