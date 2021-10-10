@@ -39,7 +39,7 @@ class TangleController:
     @staticmethod
     def __is_tangle_msg_id_confirmed(message_metadata):
         solid = message_metadata["is_solid"]
-        included_in_ledger = message_metadata["ledger_inclusion_state"]["state"].lower() == "included"
+        included_in_ledger = message_metadata["ledger_inclusion_state"].get("state", "not_included").lower() == "included"
         if solid and included_in_ledger:
             logger.debug("Message is solid and included in ledger milestone.")
             return True
