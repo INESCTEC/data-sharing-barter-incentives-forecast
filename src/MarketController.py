@@ -172,7 +172,7 @@ class MarketController:
                     )
                     logger.info(rsp)
             except Exception:
-                logger.exception("Unable to place bid.")
+                logger.error(f"Unable to validate bid {b}")
 
     def close_market_session(self):
         """
@@ -369,8 +369,7 @@ class MarketController:
                 )
                 logger.debug(transfer_data)
             except WalletTransferOutException:
-                logger.exception("Failed to register tokens transfer out "
-                                 "action.")
+                logger.error("Failed to register tokens transfer out action.")
                 continue
 
         # Transfer tokens out:
@@ -463,8 +462,9 @@ class MarketController:
                     )
                     logger.debug(f"Transfer out response: {response}")
                 except WalletTransferOutException:
-                    logger.exception("Failed to register tokens transfer out "
-                                     "action.")
+                    logger.error("Failed to register tokens transfer out "
+                                 "action.")
+                    continue
 
     def create_market_report(self):
         # todo: Fetch session bids

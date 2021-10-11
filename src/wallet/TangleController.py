@@ -70,7 +70,8 @@ class TangleController:
         # Check if tangle message ID is solid & included in ledger milestone
         confirmed = self.__is_tangle_msg_id_confirmed(message_metadata=meta)
         if not confirmed:
-            message = "Message ID is not confirmed in tangle yet. Try again later."
+            message = "Message ID is not confirmed in tangle yet. " \
+                      "Try again later."
             errors = {"message": message}
             raise IdNotConfirmedInTangle(message, errors)
 
@@ -81,7 +82,8 @@ class TangleController:
         ]
 
         if len(transactions_out) > 1:
-            raise Exception(f"Unexpected behaviour. Multiple transactions found "
+            raise Exception(f"Unexpected behaviour. "
+                            f"Multiple transactions found "
                             f"for {output_address}")
         elif len(transactions_out) == 0:
             raise Exception(f"No transactions found to output address "
@@ -115,7 +117,8 @@ class TangleController:
         # Check if tangle message ID is solid & included in ledger milestone
         confirmed = self.__is_tangle_msg_id_confirmed(message_metadata=meta)
         if not confirmed:
-            message = "Message ID is not confirmed in tangle yet. Try again later."
+            message = "Message ID is not confirmed in tangle yet. " \
+                      "Try again later."
             errors = {"message": message}
             raise IdNotConfirmedInTangle(message, errors)
 
