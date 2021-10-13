@@ -79,6 +79,7 @@ class TangleController:
             logger.debug("Getting data and meta for reattached msg ...")
             reatached_data = self.client.get_included_message(tx_id)
             reattached_id = reatached_data["message_id"]
+            logger.debug(f"ID of reattached message: {reattached_id}")
             reattached_meta = self.client.get_message_metadata(reattached_id)
             logger.debug("Getting data and meta for reattached msg ... Ok!")
         except Exception:
