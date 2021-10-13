@@ -306,16 +306,19 @@ class MarketController:
             log_msg_ = "Failed to transfer tokens out. " \
                        "There are still sessions with " \
                        "'open' status."
-            raise WalletTransferOutException(message=log_msg_,
-                                             errors={"message": log_msg_})
-                                             
+            raise WalletTransferOutException(
+                message=log_msg_,
+                errors={"message": log_msg_}
+            )
         running_sessions = self.api.list_market_sessions(status="running")
         if len(running_sessions) > 0:
             log_msg_ = "Failed to transfer tokens out. " \
                        "There are still sessions with " \
                        "'running' status."
-            raise WalletTransferOutException(message=log_msg_,
-                                             errors={"message": log_msg_})
+            raise WalletTransferOutException(
+                message=log_msg_,
+                errors={"message": log_msg_}
+            )
 
         # List of balances to transfer
         # Note: user must have balance > MINIMUM_WITHDRAW_AMOUNT (.env)
