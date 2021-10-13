@@ -162,7 +162,8 @@ class MarketController:
 
         for b in bids:
             try:
-                valid_in_tangle = self.tangle.validate_tangle_message(
+                valid_in_tangle = self.tangle.validate_message(
+                    output_type="single",
                     message_id=b["tangle_msg_id"],
                     output_address=market_wallet_address,
                     expected_amount=b["max_payment"]
@@ -173,7 +174,7 @@ class MarketController:
                     )
                     logger.info(rsp)
             except Exception:
-                logger.error(f"Unable to validate bid {b}")
+                logger.exception(f"Unable to validate bid {b}")
 
     def close_market_session(self):
         """
@@ -444,7 +445,8 @@ class MarketController:
         for tangle_msg_id, transfer_list in transfers_by_msg_id.items():
             try:
                 # Validate message ID:
-                self.tangle.validate_tangle_message_multi_output(
+                self.tangle.validate_message(
+                    output_type="multiple",
                     message_id=tangle_msg_id,
                     transfer_list=transfer_list
                 )

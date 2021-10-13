@@ -25,55 +25,119 @@ class TangleController:
         metadata = self.client.get_message_metadata(message_id)
         return metadata
 
-    def get_message(self, message_id):
-        message = self.client.get_message_data(message_id)
-        return message
-
-    def get_message_output(self, message_id):
-        message = self.client.get_message_data(message_id)
-        # Search Message transactions "outputs" section:
-        transaction = message["payload"]["transaction"][0]
-        output = transaction["essence"]["outputs"]
-        return output
+    def get_message_meta_and_data(self, message_id):
+        # Search message metadata:
+        metadata = self.client.get_message_metadata(message_id)
+        # Search message transactions "outputs" section:
+        data = self.client.get_message_data(message_id)
+        return metadata, data
 
     @staticmethod
-    def __is_tangle_msg_id_confirmed(message_metadata):
+    def __is_msg_confirmed(message_metadata):
         solid = message_metadata["is_solid"]
-        included_in_ledger = message_metadata["ledger_inclusion_state"].get("state", "not_included").lower() == "included"
+        try:
+            included_in_ledger = message_metadata["ledger_inclusion_state"].get("state", "not_included").lower() == "included"
+        except AttributeError:
+            included_in_ledger = False
+
         if solid and included_in_ledger:
             logger.debug("Message is solid and included in ledger milestone.")
             return True
         elif solid and (not included_in_ledger):
-            logger.error("Message is solid and included in ledger milestone.")
+            logger.warning("Message is solid but is is not yet included in a "
+                           "ledger milestone.")
             return False
         elif (not solid) and included_in_ledger:
-            logger.error("Message is included in ledger but not solid.")
+            logger.warning("Message is included in ledger milestone but is "
+                           "not solid.")
             return False
         else:
-            logger.error("Message not solid nor included in ledger milestone.")
+            logger.warning("Message not solid nor included in ledger "
+                           "milestone.")
+            return False
 
-    def validate_tangle_message(self,
-                                message_id,
-                                output_address,
-                                expected_amount):
+    def check_if_reattached(self, message_meta, message_data):
+        """
+        Check if current message was already reattached. If so, validate
+        based on that reattached message body.
+
+        :return:
+        """
+
+        try:
+            # Get output transaction ID (based on message payload):
+            logger.debug("Searching for reattached message ...")
+            tx_id = self.client.get_transaction_id(message_data["payload"])
+            logger.debug(f"Output transaction id: {tx_id}")
+            logger.debug("Searching for reattached message ... Ok!")
+        except Exception:
+            logger.exception("Failed to find reattached message!")
+            return False, message_meta, message_data
+
+        try:
+            # Search for message assigned to new output transaction ID:
+            logger.debug("Getting data and meta for reattached msg ...")
+            reatached_data = self.client.get_included_message(tx_id)
+            reattached_id = reatached_data["message_id"]
+            reattached_meta = self.client.get_message_metadata(reattached_id)
+            logger.debug("Getting data and meta for reattached msg ... Ok!")
+        except Exception:
+            logger.exception("Failed to get data and meta for reattached msg.")
+            return False, message_meta, message_data
+
+        # Check if msg is confirmed:
+        confirmed = self.__is_msg_confirmed(message_metadata=reattached_meta)
+        return confirmed, reattached_meta, reatached_data
+
+    def validate_message(self, output_type, message_id, **kwargs):
         logger.debug(f"Validating tangle message ID {message_id}")
 
         try:
             # -- Get Message metadata details:
-            meta = self.get_message_metadata(message_id)
-            # -- Get message output transactions details:
-            message_output = self.get_message_output(message_id)
+            meta, data = self.get_message_meta_and_data(message_id)
         except ValueError as ex:
             errors = {"message": ex.args[0]}
             raise IdNotFoundInTangle(message=ex.args, errors=errors)
 
         # Check if tangle message ID is solid & included in ledger milestone
-        confirmed = self.__is_tangle_msg_id_confirmed(message_metadata=meta)
+        confirmed = self.__is_msg_confirmed(message_metadata=meta)
         if not confirmed:
-            message = "Message ID is not confirmed in tangle yet. " \
-                      "Try again later."
-            errors = {"message": message}
-            raise IdNotConfirmedInTangle(message, errors)
+            # Check if there is a reattached msg:
+            confirmed, meta, data = self.check_if_reattached(
+                message_meta=meta,
+                message_data=data,
+            )
+            # todo: if message is reattached, we should inform DB about it
+            if not confirmed:
+                # raise error if message is not reattached / confirmed:
+                message = "Message ID is not confirmed in tangle yet and " \
+                          "no reattachment's were found. Try again later."
+                errors = {"message": message}
+                raise IdNotConfirmedInTangle(message, errors)
+
+        if output_type == "single":
+            confirmed = self.validate_single_output_message(
+                message_data=data,
+                **kwargs)
+            logger.debug(f"Validating tangle message ID {message_id} ... Ok!")
+            return confirmed
+        elif output_type == "multiple":
+            confirmed = self.validate_multi_output_message(
+                message_data=data,
+                **kwargs)
+            logger.debug(f"Validating tangle message ID {message_id} ... Ok!")
+            return confirmed
+        else:
+            raise AttributeError("output_type must be 'single' or 'multiple'")
+
+    @staticmethod
+    def validate_single_output_message(message_data: dict,
+                                       output_address: str,
+                                       expected_amount: int):
+
+        # Get Message transactions "outputs" section:
+        transaction = message_data["payload"]["transaction"][0]
+        message_output = transaction["essence"]["outputs"]
 
         # Filter transactions to desired output address:
         transactions_out = [
@@ -81,6 +145,7 @@ class TangleController:
             if x["signature_locked_single"]["address"] == output_address
         ]
 
+        # Check if there is only 1 transaction (expected behaviour):
         if len(transactions_out) > 1:
             raise Exception(f"Unexpected behaviour. "
                             f"Multiple transactions found "
@@ -92,35 +157,23 @@ class TangleController:
         # Verify max_payment amount (IOTA) writen in Tangle transaction:
         tangle_amount = transactions_out[0]["signature_locked_single"]["amount"]
 
+        # Check if amount in tangle msg == amount registered in bid
         if tangle_amount != expected_amount:
             raise Exception(f"Expected amount ({expected_amount}) differs "
                             f"from amount in Tangle ({tangle_amount})")
-
-        logger.debug(f"Amount in tangle ({tangle_amount}) matches "
-                     f"expected amount ({expected_amount})")
-        logger.debug(f"Validating tangle message ID {message_id} ... Ok!")
+        else:
+            logger.debug(f"Amount in tangle ({tangle_amount}) matches "
+                         f"expected amount ({expected_amount})")
 
         return True
 
-    def validate_tangle_message_multi_output(self, message_id, transfer_list):
-        logger.debug(f"Validating tangle message ID {message_id}")
+    @staticmethod
+    def validate_multi_output_message(message_data: dict,
+                                      transfer_list: list):
 
-        try:
-            # -- Get Message metadata details:
-            meta = self.get_message_metadata(message_id)
-            # -- Get message output transactions details:
-            message_output = self.get_message_output(message_id)
-        except ValueError as ex:
-            errors = {"message": ex.args[0]}
-            raise IdNotFoundInTangle(message=ex.args, errors=errors)
-
-        # Check if tangle message ID is solid & included in ledger milestone
-        confirmed = self.__is_tangle_msg_id_confirmed(message_metadata=meta)
-        if not confirmed:
-            message = "Message ID is not confirmed in tangle yet. " \
-                      "Try again later."
-            errors = {"message": message}
-            raise IdNotConfirmedInTangle(message, errors)
+        # Get Message transactions "outputs" section:
+        transaction = message_data["payload"]["transaction"][0]
+        message_output = transaction["essence"]["outputs"]
 
         # -- Get message output transactions for expected output address:
         expected_addresses = [x["address"] for x in transfer_list]
@@ -142,5 +195,4 @@ class TangleController:
                                f"from tangle_amount ({expected_amount}) "
                                f"for address {tangle_address}")
 
-        logger.debug(f"Validating tangle message ID {message_id} ... Ok!")
         return True
