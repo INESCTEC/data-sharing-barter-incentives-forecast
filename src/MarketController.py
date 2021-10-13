@@ -145,13 +145,14 @@ class MarketController:
         :return:
         """
         # Check open session:
-        open_session = self.api.list_last_session(status='open')
+        open_session = self.api.list_last_session(status='closed')
         logger.info(open_session)
         logger.info("")
 
         # List bids for each session:
         bids = self.api.list_session_bids(
-            session_id=open_session["market_session_id"]
+            session_id=open_session["market_session_id"],
+            confirmed=False,
         )
         logger.info(bids)
         logger.info("")

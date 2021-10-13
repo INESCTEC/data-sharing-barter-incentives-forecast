@@ -145,8 +145,8 @@ def market_menu():
         print("     Market OPS MENU")
         print("1  - Open market session")
         print("2  - Get bids for current market session")
-        print("3  - Approve market bids")
-        print("4  - Close market session")
+        print("3  - Close market session")
+        print("4  - Approve market bids")
         print("5  - Run market session")
         print("6  - Get users market balance")
         print("7  - Transfer token balance back to agents")
@@ -173,15 +173,15 @@ def market_menu():
             except Exception:
                 pass
         elif choice == "3":
-            # Approve buyers bids:
-            try:
-                market.approve_buyers_bids()
-            except Exception:
-                pass
-        elif choice == "4":
             # Close market session (no more bids):
             try:
                 market.close_market_session()
+            except Exception:
+                pass
+        elif choice == "4":
+            # Approve buyers bids:
+            try:
+                market.approve_buyers_bids()
             except Exception:
                 pass
         elif choice == "5":

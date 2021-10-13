@@ -373,8 +373,12 @@ class Controller(RequestController):
         )
         return response['data']
 
-    def list_session_bids(self, session_id: int):
+    def list_session_bids(self,
+                          session_id: int,
+                          confirmed: int = None):
         params = {"market_session_id": session_id}
+        if confirmed is not None:
+            params["confirmed"] = confirmed
         response = self.__request_template(
             endpoint_cls=Endpoint(market_bid.GET, market_bid.uri),
             log_msg=f"Listing bids for session {session_id}",
