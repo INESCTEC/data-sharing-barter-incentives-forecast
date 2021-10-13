@@ -30,13 +30,13 @@ cf = input("A new market session is open. Place your bids.\n"
 if cf.lower() not in ["y", "n"]:
     raise IOError("Input error. Valid inputs are y-yes or n-no")
 
-# Approve buyers bids:
-market.approve_buyers_bids()
 
-input("Press any key to continue.")
 # Close market session (no more bids):
 market.close_market_session()
+input("Press any key to continue.")
 
+# Approve buyers bids:
+market.approve_buyers_bids()
 input("Press any key to continue.")
 # Run market session:
 market.run_market_session()
