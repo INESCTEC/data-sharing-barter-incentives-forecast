@@ -296,20 +296,26 @@ class MarketController:
 
         :return:
         """
+
         # Important! There cant be open or running sessions, otherwise
         # users balance might change during this sessions and during
         # token transfer out. Leading to bad updates in database.
         # todo: improve this detection process in the future.
         open_sessions = self.api.list_market_sessions(status="open")
         if len(open_sessions) > 0:
-            raise MarketSessionException("Failed to transfer tokens out. "
-                                         "There are still sessions with "
-                                         "'open' status.")
+            log_msg_ = "Failed to transfer tokens out. " \
+                       "There are still sessions with " \
+                       "'open' status."
+            raise WalletTransferOutException(message=log_msg_,
+                                             errors={"message": log_msg_})
+                                             
         running_sessions = self.api.list_market_sessions(status="running")
         if len(running_sessions) > 0:
-            raise MarketSessionException("Failed to transfer tokens out. "
-                                         "There are still sessions with "
-                                         "'running' status.")
+            log_msg_ = "Failed to transfer tokens out. " \
+                       "There are still sessions with " \
+                       "'running' status."
+            raise WalletTransferOutException(message=log_msg_,
+                                             errors={"message": log_msg_})
 
         # List of balances to transfer
         # Note: user must have balance > MINIMUM_WITHDRAW_AMOUNT (.env)
