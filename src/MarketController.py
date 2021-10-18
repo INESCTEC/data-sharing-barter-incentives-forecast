@@ -162,7 +162,8 @@ class MarketController:
 
         for b in bids:
             try:
-                valid_in_tangle = self.tangle.validate_tangle_message(
+                valid_in_tangle = self.tangle.validate_message(
+                    output_type="single",
                     message_id=b["tangle_msg_id"],
                     output_address=market_wallet_address,
                     expected_amount=b["max_payment"]
@@ -173,7 +174,7 @@ class MarketController:
                     )
                     logger.info(rsp)
             except Exception:
-                logger.error(f"Unable to validate bid {b}")
+                logger.exception(f"Unable to validate bid {b}")
 
     def close_market_session(self):
         """
@@ -295,20 +296,29 @@ class MarketController:
 
         :return:
         """
+
         # Important! There cant be open or running sessions, otherwise
         # users balance might change during this sessions and during
         # token transfer out. Leading to bad updates in database.
         # todo: improve this detection process in the future.
         open_sessions = self.api.list_market_sessions(status="open")
         if len(open_sessions) > 0:
-            raise MarketSessionException("Failed to transfer tokens out. "
-                                         "There are still sessions with "
-                                         "'open' status.")
+            log_msg_ = "Failed to transfer tokens out. " \
+                       "There are still sessions with " \
+                       "'open' status."
+            raise WalletTransferOutException(
+                message=log_msg_,
+                errors={"message": log_msg_}
+            )
         running_sessions = self.api.list_market_sessions(status="running")
         if len(running_sessions) > 0:
-            raise MarketSessionException("Failed to transfer tokens out. "
-                                         "There are still sessions with "
-                                         "'running' status.")
+            log_msg_ = "Failed to transfer tokens out. " \
+                       "There are still sessions with " \
+                       "'running' status."
+            raise WalletTransferOutException(
+                message=log_msg_,
+                errors={"message": log_msg_}
+            )
 
         # List of balances to transfer
         # Note: user must have balance > MINIMUM_WITHDRAW_AMOUNT (.env)
@@ -444,7 +454,8 @@ class MarketController:
         for tangle_msg_id, transfer_list in transfers_by_msg_id.items():
             try:
                 # Validate message ID:
-                self.tangle.validate_tangle_message_multi_output(
+                self.tangle.validate_message(
+                    output_type="multiple",
                     message_id=tangle_msg_id,
                     transfer_list=transfer_list
                 )
