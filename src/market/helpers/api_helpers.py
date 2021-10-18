@@ -29,8 +29,8 @@ def get_session_data(api_controller):
 # #############################################################################
 
 
-def get_measurements_data(api_controller, buyers_ids, sellers_ids,
-                          market_launch_time):
+def get_measurements_data_mock(api_controller, buyers_ids, sellers_ids,
+                               market_launch_time):
     # todo: Right now working with mock data - replace by DB queries:
     from ..util.mock import MeasurementsGenerator
     logger.info("Querying agents measurements ...")
@@ -45,6 +45,13 @@ def get_measurements_data(api_controller, buyers_ids, sellers_ids,
         )
     logger.info("Querying agents measurements ... Ok!")
     return measurements
+
+
+def get_measurements_data(api_controller, buyers_ids, sellers_ids,
+                          market_launch_time):
+    # todo: implement this once data in DB
+    raise NotImplementedError("Method not yet implemented.")
+
 
 # #############################################################################
 # Function to terminate sessions without bids:

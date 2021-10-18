@@ -11,7 +11,7 @@ from .wallet import WalletController, TangleController
 from .market import MarketClass
 from .market.helpers.api_helpers import (
     get_session_data,
-    get_measurements_data,
+    get_measurements_data_mock,
     close_no_bids_session
 )
 from .market.helpers.units_helpers import (
@@ -241,7 +241,8 @@ class MarketController:
         # ################################
         # Query agents measurements:
         # ################################
-        measurements = get_measurements_data(
+        # todo: Change to real measurements data
+        measurements = get_measurements_data_mock(
             api_controller=self.api,
             buyers_ids=buyers_ids,
             sellers_ids=sellers_ids,
