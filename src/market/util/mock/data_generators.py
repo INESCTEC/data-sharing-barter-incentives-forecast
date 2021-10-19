@@ -121,12 +121,8 @@ class AgentsGenerator:
         self.seller_agents = []
         self.mock_dataset = None
 
-    def read_mock_dataset(self):
-        self.mock_dataset = pd.read_csv(os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "mock_measurements.csv"
-        ), sep=';')
+    def read_mock_dataset(self, path, sep=';'):
+        self.mock_dataset = pd.read_csv(path, sep=sep)
         self.mock_dataset.loc[:, 'datetime'] = pd.to_datetime(
             self.mock_dataset["datetime"],
             format="%Y-%m-%d %H:%M").dt.tz_localize("UTC")
@@ -152,8 +148,10 @@ class AgentsGenerator:
         self.buyer_agents.append(
             {
                 "user": user,
-                "bid_price": generate_bid(max_bid_price=market_price) if bid_price is None else bid_price,  # noqa
-                "max_payment": generate_max_payment() if max_payment is None else max_payment,  # noqa
+                "bid_price": generate_bid(max_bid_price=market_price)
+                if bid_price is None else bid_price,
+                "max_payment": generate_max_payment()
+                if max_payment is None else max_payment,
                 "gain_func": gain_func
             }
         )
