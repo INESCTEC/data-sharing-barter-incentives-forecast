@@ -121,20 +121,18 @@ class AgentsGenerator:
         self.seller_agents = []
         self.mock_dataset = None
 
-    def read_mock_dataset(self):
-        self.mock_dataset = pd.read_csv(os.path.join(
-            os.path.dirname(__file__),
-            "data",
-            "mock_measurements.csv"
-        ), sep=';')
+    def read_mock_dataset(self, path, sep=','):
+        self.mock_dataset = pd.read_csv(path, sep=sep)
+        self.mock_dataset.drop_duplicates("datetime", inplace=True)
         self.mock_dataset.loc[:, 'datetime'] = pd.to_datetime(
             self.mock_dataset["datetime"],
             format="%Y-%m-%d %H:%M").dt.tz_localize("UTC")
         self.mock_dataset.set_index("datetime", inplace=True)
 
     def get_measurements(self, agent_id, end_date):
+        end_date = end_date.strftime("%Y-%m-%d %H:%M:%S.%f")
         _ts = self.mock_dataset[:end_date].index
-        _v = self.mock_dataset.loc[:end_date, f"A{agent_id}"].values
+        _v = self.mock_dataset.loc[:end_date, f"{agent_id}"].values
         measurements = pd.DataFrame({
             "datetime": _ts,
             "value": _v,
@@ -148,7 +146,8 @@ class AgentsGenerator:
                   market_price,
                   bid_price=None,
                   max_payment=None,
-                  gain_func="rmse"):
+                  gain_func="rmse",
+                  ):
         self.buyer_agents.append(
             {
                 "user": user,

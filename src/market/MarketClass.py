@@ -112,7 +112,6 @@ class MarketClass:
             raise TypeError("Error! bids argument must be a list of dicts")
         # Init Buyer class with each bid information:
         for buyer_bid in bids:
-            # todo: check if bid is confirmed before accepting
             cls = BuyerClass(
                 identifier=buyer_bid["user"],
                 initial_bid=buyer_bid["bid_price"],
@@ -140,6 +139,7 @@ class MarketClass:
         for agent in sorted(agent_list):
             # Fetch agent data (empty dataset if key not found)
             _df = measurements.get(agent, pd.DataFrame())
+            _df.set_index("datetime", inplace=True)
             if agent in self.buyers_data:
                 self.buyers_data[agent].set_measurements(_df)
             if agent in self.sellers_data:
@@ -160,6 +160,16 @@ class MarketClass:
         return data
 
     def __create_market_dataset(self):
+        """
+        Create dataset with sellers data:
+
+        1. Defines expected datetime range of market dataset
+        2. Join sellers datasets
+        3. Fill missing values (with zeros)
+
+        :return: pd.DataFrame - sellers market dataset
+        """
+        # 1. Define expected datetime range:
         logger.info("Creating market dataset ...")
         _end_date = self.launch_time.replace(minute=0, second=0, microsecond=0)  # noqa
         _end_date = _end_date + pd.DateOffset(hours=self.FORECAST_HORIZON)
@@ -170,9 +180,10 @@ class MarketClass:
             tz="utc",
             freq="H"
         )
+        # 2. Add sellers data:
         market_df = pd.DataFrame(index=_range)
         for seller_id, seller_cls in self.sellers_data.items():
-            df_ = seller_cls.y.set_index("datetime")[["value"]]
+            df_ = seller_cls.y[["value"]]
             df_ = df_.rename(columns={"value": seller_id})
             df_ = df_.resample("H").mean()
             market_df = market_df.join(df_, how="left")
@@ -232,36 +243,32 @@ class MarketClass:
         return feat_df
 
     def __process_features(self, market_x, buyer_x, buyer_y):
+        launch_time_ = self.launch_time.strftime("%Y-%m-%d %H:%M:%S.%f")
         # Join market and buyer features:
         features_ = market_x.join(buyer_x)
         # Prepare train dataset:
-        train_features = features_[:self.launch_time].join(buyer_y).dropna(subset=["target"])  # noqa
+        train_features = features_[:launch_time_].join(buyer_y).dropna(subset=["target"])  # noqa
         # Remove "target" variable from train dataset:
         train_targets = train_features.pop("target").to_frame()
         # Test features (variables available for all dates since launch time)
-        test_features = features_[self.launch_time:]
+        test_features = features_[launch_time_:]
         return train_features, train_targets, test_features
 
     def payment_and_forecast(self,
                              buyer_cls,
-                             market_x_full,
-                             market_price,
-                             b_min,
-                             b_max,
-                             epsilon,
-                             n_hours
-                             ):
+                             market_x_full: pd.DataFrame):
+
         # -- Load Buyer data
         logger.info(f"Processing buyer {buyer_cls.identifier} bid ...")
         buyer_id = buyer_cls.identifier
         buyer_bid = buyer_cls.initial_bid
-        max_pay_ = buyer_cls.max_payment
-        buyer_y = buyer_cls.y.set_index("datetime")[["value"]]
+        max_payment = buyer_cls.max_payment
+        buyer_y = buyer_cls.y[["value"]].copy()
         buyer_y.rename(columns={"value": "target"}, inplace=True)
         gain_func = buyer_cls.gain_func
         logger.debug(f"\n-- Buyer {buyer_id}"
                      f"\nBid:{buyer_bid}"
-                     f"\nMax.Payment:{max_pay_}"
+                     f"\nMax.Payment:{max_payment}"
                      f"\nGain Function:{gain_func}"
                      f"\nlen(y):{len(buyer_y)}"
                      )
@@ -309,13 +316,13 @@ class MarketClass:
                 targets=train_targets,
                 bid_price=buyer_bid,
                 gain_func=gain_func,
-                market_price=market_price,
-                b_min=b_min,
-                b_max=b_max,
-                epsilon=epsilon,
-                n_hours=n_hours,
+                market_price=self.mkt_sess.market_price,
+                b_min=self.mkt_sess.b_min,
+                b_max=self.mkt_sess.b_max,
+                epsilon=self.mkt_sess.epsilon,
+                n_hours=self.N_HOURS,
             )
-            if payment <= max_pay_:
+            if payment <= max_payment:
                 # Finish process if payment <= max_payment
                 market_fee = payment * self.MARKET_FEE_PCT
                 run_cycle = False
@@ -324,7 +331,7 @@ class MarketClass:
             else:
                 # Else, affect buyer bid (bid-epsilon) & repeat:
                 logger.warning(f"Payment ({payment}) higher than "
-                               f"max_payment ({max_pay_})!")  # noqa
+                               f"max_payment ({max_payment})!")  # noqa
                 buyer_bid = max(0, buyer_bid - self.mkt_sess.epsilon)
                 logger.warning(f"Bid value readjusted to {buyer_bid}. "
                                f"Recomputing ...")
@@ -453,17 +460,10 @@ class MarketClass:
         # -- 2. Create market features
         market_x_full = self.__create_market_features(market_df=market_df)
         # -- 3. Process payment & forecasts for each buyer agent
-        self.buyer_outputs = Parallel(
-            n_jobs=self.n_jobs,
-        )(delayed(self.payment_and_forecast)(
-            buyer_cls,
-            market_x_full,
-            self.mkt_sess.market_price,
-            self.mkt_sess.b_min,
-            self.mkt_sess.b_max,
-            self.mkt_sess.epsilon,
-            self.N_HOURS
-        ) for buyer_cls in self.buyers_data.values())
+        self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
+            delayed(self.payment_and_forecast)(buyer_cls, market_x_full)
+            for buyer_cls in self.buyers_data.values()
+        )
         # -- 3.1 Store results in each buyer cls & sum market fees:
         for out in self.buyer_outputs:
             self.buyers_data[out["buyer_id"]].set_payment(out["payment"])
