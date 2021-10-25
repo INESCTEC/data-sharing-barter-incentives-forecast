@@ -7,3 +7,5 @@ flake8
 coverage
 pytest
 python-dotenv
+psycopg2
+sqlalchemy
