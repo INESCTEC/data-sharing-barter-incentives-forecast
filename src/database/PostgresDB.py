@@ -30,9 +30,7 @@ class PostgresDB:
 
     def insert_dataframe(self, df, table, force_update=False):
         connection = self.engine.raw_connection()
-        to_sql_no_update(conn=connection,
-                         df=df,
-                         table=table)
+        return to_sql_no_update(conn=connection, df=df, table=table)
 
 
 if __name__ == '__main__':
