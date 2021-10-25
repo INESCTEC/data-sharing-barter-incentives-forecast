@@ -20,6 +20,17 @@ IOTA_NODE_URL = os.environ['IOTA_NODE_URL']
 MARKET_EMAIL = os.environ['MARKET_EMAIL']
 MARKET_PASSWORD = os.environ['MARKET_PASSWORD']
 
+# Database configs:
+DATABASES = {
+    'default': {
+        'NAME': os.environ.get("POSTGRES_NAME", default=''),
+        'USER': os.environ.get("POSTGRES_USER", default=''),
+        'PASSWORD': os.environ.get("POSTGRES_PASSWORD", default=''),
+        'HOST': os.environ.get("POSTGRES_HOST", default=''),
+        'PORT': int(os.environ.get("POSTGRES_PORT", default=5432)),
+    }
+}
+
 
 # Market Session - First Session Configs:
 class FirstSessionConfigs:
