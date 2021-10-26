@@ -45,12 +45,16 @@ def bids_3b_3s(init_configs, market_session):
     NR_SELLERS = 3
 
     # Create fictitious bids:
+    market_bid_id = 1
     ag = AgentsGenerator(launch_time=init_configs["market_launch_time"])
     for i in range(NR_BUYERS):
         ag.add_buyer(user=i,
                      market_price=market_session.market_price,
                      bid_price=np.float64(5.0),
-                     max_payment=np.float64(1000))
+                     max_payment=np.float64(1000),
+                     market_bid_id=market_bid_id
+                     )
+        market_bid_id += 1
     for i in range(NR_SELLERS):
         ag.add_seller(user=i)
     return ag.buyers_bids, ag.sellers_list
@@ -71,6 +75,7 @@ def measurements_bids_3b_3s(init_configs, bids_3b_3s):
                 years=1),  # noqa
             end_date=init_configs["market_launch_time"],
         )
+        measurements[agent].set_index("datetime", inplace=True)
     return measurements
 
 

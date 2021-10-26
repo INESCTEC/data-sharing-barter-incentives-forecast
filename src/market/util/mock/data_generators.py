@@ -144,6 +144,7 @@ class AgentsGenerator:
     def add_buyer(self,
                   user,
                   market_price,
+                  market_bid_id,
                   bid_price=None,
                   max_payment=None,
                   gain_func="rmse",
@@ -153,7 +154,8 @@ class AgentsGenerator:
                 "user": user,
                 "bid_price": generate_bid(max_bid_price=market_price) if bid_price is None else bid_price,  # noqa
                 "max_payment": generate_max_payment() if max_payment is None else max_payment,  # noqa
-                "gain_func": gain_func
+                "gain_func": gain_func,
+                "market_bid_id": market_bid_id
             }
         )
 

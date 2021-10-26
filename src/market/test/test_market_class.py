@@ -24,7 +24,9 @@ def expected_buyer_bid_fields():
     return sorted(['bid_price',
                    'gain_func',
                    'max_payment',
-                   'user'])
+                   'user',
+                   'market_bid_id',
+                   ])
 
 
 @pytest.fixture
