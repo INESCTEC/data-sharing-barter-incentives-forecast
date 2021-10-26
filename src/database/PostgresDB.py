@@ -2,7 +2,6 @@ import pandas as pd
 
 from sqlalchemy import create_engine
 
-from conf import settings
 from .helpers import to_sql_no_update
 
 
@@ -10,6 +9,7 @@ class PostgresDB:
     instances = {}
 
     def __init__(self, config_name):
+        from conf import settings
         db_cfg = settings.DATABASES[config_name]
         self.engine = create_engine(f"postgresql://"
                                     f"{db_cfg['USER']}:{db_cfg['PASSWORD']}@"

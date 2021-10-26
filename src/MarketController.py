@@ -242,7 +242,7 @@ class MarketController:
         measurements = get_measurements_data(
             buyers_ids=buyers_ids,
             sellers_ids=sellers_ids,
-            market_launch_time=market_launch_time
+            market_launch_time=launch_time
         )
 
         # ################################
