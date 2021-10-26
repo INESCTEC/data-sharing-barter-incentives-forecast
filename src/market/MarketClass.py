@@ -1,10 +1,12 @@
 import pandas as pd
+import datetime as dt
 
 from time import time
 from loguru import logger
 from joblib import Parallel, delayed
 
 # -- Helper funcs:
+from src.database.PostgresDB import PostgresDB
 from src.market.helpers.market_helpers import (
     calc_buyer_payment,
     calc_sellers_revenue,
@@ -116,7 +118,8 @@ class MarketClass:
                 identifier=buyer_bid["user"],
                 initial_bid=buyer_bid["bid_price"],
                 max_payment=buyer_bid["max_payment"],
-                gain_func=buyer_bid["gain_func"]
+                gain_func=buyer_bid["gain_func"],
+                market_bid_id=buyer_bid["market_bid_id"]
             )
             cls.validate_attributes()
             self.buyers_data[cls.identifier] = cls
@@ -136,10 +139,11 @@ class MarketClass:
         # Intersection - agents that are sellers & buyers
         agent_list = set(list(self.buyers_data.keys()) +
                          list(self.sellers_data.keys()))
+        # Assign measurements data to each agent class:
+        default_df = pd.DataFrame(columns=["datetime", "value"])
         for agent in sorted(agent_list):
             # Fetch agent data (empty dataset if key not found)
-            _df = measurements.get(agent, pd.DataFrame())
-            _df.set_index("datetime", inplace=True)
+            _df = measurements.get(agent, default_df)
             if agent in self.buyers_data:
                 self.buyers_data[agent].set_measurements(_df)
             if agent in self.sellers_data:
@@ -194,8 +198,7 @@ class MarketClass:
             raise NoMarketDataException(e_msg)
         else:
             logger.info("Creating market dataset ... Ok!")
-            # Fill NaN w/ zeros & return market df
-            return market_df.fillna(0)
+            return market_df
 
     def __create_market_features(self, market_df: pd.DataFrame):
         logger.info("Creating market features ...")
@@ -208,6 +211,7 @@ class MarketClass:
                 feat_df.loc[:, _name] = market_df[seller_id].shift(self.FORECAST_HORIZON + i)  # noqa
         # todo: verificar que features n existem no horizonte de previsão
         #  e só depois substituir NaN
+        feat_df.dropna(how="all", inplace=True)
         feat_df.fillna(0, inplace=True)
         logger.info("Creating market features ... Ok!")
         return feat_df
@@ -262,6 +266,7 @@ class MarketClass:
         logger.info(f"Processing buyer {buyer_cls.identifier} bid ...")
         buyer_id = buyer_cls.identifier
         buyer_bid = buyer_cls.initial_bid
+        buyer_bid_id = buyer_cls.market_bid_id
         max_payment = buyer_cls.max_payment
         buyer_y = buyer_cls.y[["value"]].copy()
         buyer_y.rename(columns={"value": "target"}, inplace=True)
@@ -342,15 +347,14 @@ class MarketClass:
         # -- Create Forecasts
         logger.debug("Creating forecasts ...")
         forecasts = create_forecast(
-            buyer_id=buyer_id,
             train_features=train_features,
             train_targets=train_targets,
             test_features_df=test_features,
         )
-        # todo: insert forecasts in BD:
-        # todo: adicionar request aqui para avisar que user ja tem forecasts
-        #  para sessao atual.
-        self.upload_forecasts(user_id=buyer_id, forecasts=forecasts)
+        inserted = self.upload_forecasts(user_id=buyer_id, forecasts=forecasts)
+        if inserted:
+            self.update_bid_has_forecast(user_id=buyer_id,
+                                         buyer_bid_id=buyer_bid_id)
         logger.info(f"Processing buyer {buyer_id} bid ... Ok!")
         return {
             "features": train_features,
@@ -457,8 +461,9 @@ class MarketClass:
             raise NoMarketBuyersExceptions(e_msg)
         # -- 1. Create market dataset (aggregate sellers measurements data)
         market_df = self.__create_market_dataset()
-        # -- 2. Create market features
+        # -- 2. Create market features (NaNs filled with Zeros)
         market_x_full = self.__create_market_features(market_df=market_df)
+        #  todo: Eliminate users without recent data
         # -- 3. Process payment & forecasts for each buyer agent
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(self.payment_and_forecast)(buyer_cls, market_x_full)
@@ -552,11 +557,45 @@ class MarketClass:
             )
 
     def upload_forecasts(self, user_id, forecasts):
-        # upload forecasts to DB
-        # Run after payments are confirmed
-        # todo: fazer upload de forecasts para cassandra
-        # todo: atualizar campo "has_forecast" na bid para esta sessão
-        pass
+        # Create datetime col:
+        forecasts.index.name = "datetime"
+        forecasts.reset_index(drop=False, inplace=True)
+        # Create other cols:
+        forecasts["request"] = self.launch_time
+        forecasts["market_session_id"] = self.mkt_sess.session_id
+        forecasts["user_id"] = user_id
+        forecasts["registered_at"] = dt.datetime.utcnow()
+        forecasts["unit"] = "kw"  # Todo: Assure this is dynamic:
+        forecasts["resource_id"] = "tbd"  # Todo: Assure this is dynamic:
+        # Insert data in DB:
+        try:
+            db = PostgresDB.get_db_instance(config_name="default")
+            logger.debug(f"Forecast shape: {forecasts.shape}")
+            logger.debug(f"Inserting agent {user_id} forecasts ...")
+            db.insert_dataframe(df=forecasts, table="market_forecasts")
+            logger.debug(f"Inserting agent {user_id} forecasts ... Ok!")
+            return True
+        except Exception:
+            logger.exception(f"Failed to insert agent {user_id} forecasts")
+            return False
+
+    @staticmethod
+    def update_bid_has_forecast(user_id, buyer_bid_id):
+        try:
+            db = PostgresDB.get_db_instance(config_name="default")
+            logger.debug(f"Updating {user_id} - bid {buyer_bid_id} "
+                         f"'has_forecast' field ...")
+            query = f"UPDATE market_session_bid " \
+                    f"SET has_forecasts = true " \
+                    f"WHERE market_bid_id = {buyer_bid_id};"
+            db.execute_query(query=query)
+            logger.debug(f"Updating {user_id} - bid {buyer_bid_id} "
+                         f"'has_forecast' field ... Ok!")
+            return True
+        except Exception:
+            logger.exception(f"Failed update {user_id} - bid {buyer_bid_id} "
+                             f"'has_forecast' field.")
+            return False
 
     def open_next_session(self, api_controller=None):
         if api_controller is None:

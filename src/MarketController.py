@@ -11,7 +11,7 @@ from .wallet import WalletController, TangleController
 from .market import MarketClass
 from .market.helpers.api_helpers import (
     get_session_data,
-    get_measurements_data_mock,
+    get_measurements_data,
     close_no_bids_session
 )
 from .market.helpers.units_helpers import (
@@ -201,11 +201,9 @@ class MarketController:
 
         :return:
         """
-        # todo: change this. right fixed to get always same measurements (.csv)
-        market_launch_time = '2020-05-01 10:00:03.4536'
-        market_launch_time = pd.to_datetime(market_launch_time).tz_localize(
-            "UTC")
-        market_launch_time = market_launch_time.to_pydatetime()
+        launch_time = dt.datetime.utcnow()
+        launch_time = pd.to_datetime(launch_time).tz_localize("UTC")
+        launch_time = launch_time.to_pydatetime()
 
         # ################################
         # Fetch session data
@@ -241,9 +239,7 @@ class MarketController:
         # ################################
         # Query agents measurements:
         # ################################
-        # todo: Change to real measurements data
-        measurements = get_measurements_data_mock(
-            api_controller=self.api,
+        measurements = get_measurements_data(
             buyers_ids=buyers_ids,
             sellers_ids=sellers_ids,
             market_launch_time=market_launch_time
@@ -256,7 +252,7 @@ class MarketController:
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
-            launch_time=market_launch_time
+            launch_time=launch_time
         )
         mc.show_session_details()
         mc.start_session(api_controller=self.api)

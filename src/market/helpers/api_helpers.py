@@ -1,6 +1,7 @@
 import pandas as pd
 
 from loguru import logger
+from src.database.PostgresDB import PostgresDB
 
 # #############################################################################
 # Get Session Data:
@@ -33,7 +34,7 @@ def get_measurements_data_mock(api_controller, buyers_ids, sellers_ids,
                                market_launch_time):
     # todo: Right now working with mock data - replace by DB queries:
     from ..util.mock import MeasurementsGenerator
-    logger.info("Querying agents measurements ...")
+    logger.info("[MOCK] Querying agents measurements ...")
     agent_list = set(buyers_ids + sellers_ids)
     # Create fictitious measurements data
     mg = MeasurementsGenerator()
@@ -43,14 +44,33 @@ def get_measurements_data_mock(api_controller, buyers_ids, sellers_ids,
             start_date=market_launch_time - pd.DateOffset(months=12),
             end_date=market_launch_time,
         )
-    logger.info("Querying agents measurements ... Ok!")
+    logger.info("[MOCK] Querying agents measurements ... Ok!")
     return measurements
 
 
-def get_measurements_data(api_controller, buyers_ids, sellers_ids,
-                          market_launch_time):
-    # todo: implement this once data in DB
-    raise NotImplementedError("Method not yet implemented.")
+def get_measurements_data(buyers_ids, sellers_ids, market_launch_time):
+    db = PostgresDB.get_db_instance(config_name="default")
+    logger.info("Querying agents measurements ...")
+    agent_list = set(buyers_ids + sellers_ids)
+    measurements = {}
+    for agent in sorted(agent_list):
+        query = f"select datetime, value " \
+                f"from raw_data " \
+                f"where user_id={agent} " \
+                f"and resource_type='measurements' " \
+                f"and datetime <= '{market_launch_time}' " \
+                f"order by datetime asc;"
+        data = db.read_query_pandas(query)
+        if data.empty:
+            logger.warning(f"Agent {agent} does not have historical data.")
+            measurements[agent] = data
+        else:
+            # todo: improve data processing pipeline
+            data = data.set_index("datetime")
+            data = data.resample("H").mean().dropna()
+            measurements[agent] = data
+    logger.info("Querying agents measurements ... Ok!")
+    return measurements
 
 
 # #############################################################################

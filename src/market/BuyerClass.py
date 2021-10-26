@@ -7,6 +7,7 @@ from .helpers.class_helpers import ValidatorClass
 
 @dataclass()
 class BuyerClass(ValidatorClass):
+    market_bid_id: int = None           # Bid identifier
     identifier: int = None              # Buyer identifier
     gain_func: str = None               # Buyer gain function
     initial_bid: np.float64 = None      # Buyer initial bid
@@ -21,12 +22,14 @@ class BuyerClass(ValidatorClass):
     def validate_attributes(self):
         if self.identifier is None:
             raise ValueError("BuyerClass identifier not defined.")
-        elif self.gain_func is None:
+        if self.gain_func is None:
             raise ValueError("BuyerClass gain_func not defined.")
-        elif self.initial_bid is None:
+        if self.initial_bid is None:
             raise ValueError("BuyerClass initial_bid not defined.")
-        elif self.max_payment is None:
+        if self.max_payment is None:
             raise ValueError("BuyerClass max_payment not defined.")
+        if self.market_bid_id is None:
+            raise ValueError("BuyerClass market_bid_id not defined.")
         self.validate_attr_types()
 
     @property

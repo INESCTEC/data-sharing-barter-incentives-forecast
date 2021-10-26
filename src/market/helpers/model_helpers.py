@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from math import sqrt
+from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import (
@@ -27,15 +28,16 @@ def __mse(real, pred):
 
 def calc_forecast_error(X, y, n_hours, gain_func="rmse"):
     # todo: @Ricardo 1) mudar forma como é selecionado conjunto de treino/teste
+    #  Garantir que funciona para conjuntos com menos de N_HOURS disponiveis
     # Train/test split
     X_train = X[0:(X.shape[0] - n_hours - 1), :]
     X_val = X[(X.shape[0] - n_hours):, :]
     y_train = y[0:(X.shape[0] - n_hours - 1), :]
     y_val = y[(X.shape[0] - n_hours):, :]
     # Standardize data:
-    scaler_x = StandardScaler()
-    X_train = scaler_x.fit_transform(X_train)
-    X_val = scaler_x.transform(X_val)
+    # scaler_x = StandardScaler()
+    # X_train = scaler_x.fit_transform(X_train)
+    # X_val = scaler_x.transform(X_val)
     #  Train model:
     model = LinearRegression(fit_intercept=True).fit(X_train, y_train)
     # Compute forecasts:
@@ -166,7 +168,7 @@ def create_forecast_mock(features, targets, start_date, end_date):
     return forecasts
 
 
-def create_forecast(buyer_id, train_features, train_targets, test_features_df):
+def create_forecast(train_features, train_targets, test_features_df):
     forecasts_df = pd.DataFrame(index=test_features_df.index)
     # Train/Test split:
     X_forecast = test_features_df.values
@@ -178,5 +180,4 @@ def create_forecast(buyer_id, train_features, train_targets, test_features_df):
     model = LinearRegression(fit_intercept=True).fit(X_train, train_targets)
     # Compute forecasts:
     forecasts_df["value"] = model.predict(X_forecast).ravel()
-    forecasts_df["buyer_id"] = buyer_id
     return forecasts_df
