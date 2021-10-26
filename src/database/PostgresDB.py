@@ -3,7 +3,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 from conf import settings
-from helpers import to_sql_no_update
+from .helpers import to_sql_no_update
 
 
 class PostgresDB:
@@ -18,12 +18,16 @@ class PostgresDB:
 
     @staticmethod
     def get_db_instance(config_name="default"):
-        if PostgresDB.instances[config_name] is None:
-            PostgresDB.instances[config_name] = PostgresDB()
+        if PostgresDB.instances.get(config_name, None) is None:
+            PostgresDB.instances[config_name] = PostgresDB(
+                config_name=config_name
+            )
         return PostgresDB.instances[config_name]
 
-    def execute_query(self):
-        pass
+    def execute_query(self, query):
+        with self.engine.connect() as con:
+            rs = con.execute(query)
+        return rs
 
     def read_query_pandas(self, query):
         return pd.read_sql_query(query, con=self.engine)
