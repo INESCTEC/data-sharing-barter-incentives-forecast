@@ -463,7 +463,6 @@ class MarketClass:
         market_df = self.__create_market_dataset()
         # -- 2. Create market features (NaNs filled with Zeros)
         market_x_full = self.__create_market_features(market_df=market_df)
-        #  todo: Eliminate users without recent data
         # -- 3. Process payment & forecasts for each buyer agent
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(self.payment_and_forecast)(buyer_cls, market_x_full)
