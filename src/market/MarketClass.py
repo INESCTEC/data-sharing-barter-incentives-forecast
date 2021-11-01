@@ -6,20 +6,28 @@ from loguru import logger
 from joblib import Parallel, delayed
 
 # -- Helper funcs:
-from src.database.PostgresDB import PostgresDB
 from src.market.helpers.market_helpers import (
     calc_buyer_payment,
     calc_sellers_revenue,
     market_price_update_parallel,
 )
 
+from src.market.helpers.db_helpers import (
+    get_measurements_data,
+    upload_forecasts,
+    update_bid_has_forecast
+
+)
+
 # -- Market entities classes:
+from src.market.UserClass import UserClass
 from src.market.BuyerClass import BuyerClass
 from src.market.SellerClass import SellerClass
 from src.market.SessionClass import SessionClass
 from src.market.util.custom_exceptions import (
     NoMarketDataException,
-    NoMarketBuyersExceptions
+    NoMarketBuyersExceptions,
+    NoMarketUsersExceptions
 )
 
 # -- Mock data imports:
@@ -34,8 +42,14 @@ class MarketClass:
     MARKET_FEE_PCT = 0.05              # market fee applied to buyer payment
     REVENUE_K = 5
     REVENUE_LAMBDA = 1
+    FORECASTS_TABLE = "market_forecasts"
+    MEASUREMENTS_TABLE = "market_forecasts"
+    BIDS_TABLE = "market_session_bid"
 
     def __init__(self, n_jobs=-1):
+        self.users_data = {}
+        self.users_list = []
+        self.users_resources_list = []
         self.buyers_data = {}
         self.sellers_data = {}
         self.mkt_sess = None
@@ -48,7 +62,7 @@ class MarketClass:
         self.launch_time = launch_time
         self.mkt_sess = SessionClass(
             launch_ts=launch_time,
-            session_id=session_data["market_session_id"],
+            session_id=session_data["id"],
             session_number=session_data["session_number"],
             session_date=session_data["session_date"],
             status=session_data["status"],
@@ -108,46 +122,58 @@ class MarketClass:
         logger.info(f"Market Session:"
                     f"\n{json.dumps(self.mkt_sess.details, indent=2)}")
 
-    def load_buyers_bids(self, bids: list):
+    def load_resources_bids(self, bids: list):
         if (not isinstance(bids, list)) or \
                 (len(bids) > 0) and (not isinstance(bids[0], dict)):
             raise TypeError("Error! bids argument must be a list of dicts")
-        # Init Buyer class with each bid information:
+
         for buyer_bid in bids:
+            # Init Buyer class with each bid information:
             cls = BuyerClass(
-                identifier=buyer_bid["user"],
+                user_id=buyer_bid["user"],
+                resource_id=buyer_bid["resource"],
                 initial_bid=buyer_bid["bid_price"],
                 max_payment=buyer_bid["max_payment"],
                 gain_func=buyer_bid["gain_func"],
-                market_bid_id=buyer_bid["market_bid_id"]
+                market_bid_id=buyer_bid["id"]
+            ).validate_attributes()
+            self.buyers_data[cls.resource_id] = cls
+
+    def load_users_resources(self, users_resources: list):
+        if not isinstance(users_resources, list):
+            raise TypeError("Error! a list of resources must be provided")
+        # Init Seller class with each seller identification:
+        self.users_resources = users_resources
+        for resource_data in self.users_resources:
+            user_id = resource_data["user"]
+            cls = SellerClass(
+                user_id=user_id,
+                resource_id=resource_data["id"],
             )
             cls.validate_attributes()
-            self.buyers_data[cls.identifier] = cls
+            self.sellers_data[cls.resource_id] = cls
+            if user_id not in self.users_list:
+                self.users_list.append(user_id)
 
-    def load_sellers(self, identifiers: list):
-        if not isinstance(identifiers, list):
-            raise TypeError("Error! a list of identifiers must be provided")
-        # Init Seller class with each seller identification:
-        for seller_id in identifiers:
-            cls = SellerClass(identifier=seller_id)
-            cls.validate_attributes()
-            self.sellers_data[cls.identifier] = cls
-
-    def load_agents_measurements(self, measurements: dict):
+    def load_resources_measurements(self, measurements: dict):
         if not isinstance(measurements, dict):
             raise TypeError("Error! measurements arg. must be a dict")
         # Intersection - agents that are sellers & buyers
-        agent_list = set(list(self.buyers_data.keys()) +
-                         list(self.sellers_data.keys()))
+        resource_list = set(list(self.buyers_data.keys()) +
+                            list(self.sellers_data.keys()))
         # Assign measurements data to each agent class:
         default_df = pd.DataFrame(columns=["datetime", "value"])
-        for agent in sorted(agent_list):
+        for resource_id in sorted(resource_list):
             # Fetch agent data (empty dataset if key not found)
-            _df = measurements.get(agent, default_df)
-            if agent in self.buyers_data:
-                self.buyers_data[agent].set_measurements(_df)
-            if agent in self.sellers_data:
-                self.sellers_data[agent].set_measurements(_df)
+            _df = measurements.get(resource_id, default_df)
+            if resource_id in self.buyers_data:
+                self.buyers_data[resource_id].set_measurements(_df)
+            if resource_id in self.sellers_data:
+                self.sellers_data[resource_id].set_measurements(_df)
+
+    def load_users(self):
+        for user_id in self.users_list:
+            self.users_data[user_id] = UserClass(user_id=user_id)
 
     @staticmethod
     def __preprocess_buyer_data(data, expected_dates):
@@ -217,12 +243,12 @@ class MarketClass:
         return feat_df
 
     @staticmethod
-    def __select_market_features(agent_id: str,
+    def __select_market_features(resource_id: str,
                                  market_x_full: pd.DataFrame):
         """
         Select all market features except the ones for a specif agent_id
 
-        :param agent_id: Agent identifier
+        :param resource_id: Agent identifier
         :param market_x_full: Market dataset
         :return:
         """
@@ -230,7 +256,7 @@ class MarketClass:
         #  depois, filtrar sellers q n têm dados para as ultimas X horas (X = nº lags)
         #  depois, selecionar features com maior correlação com série de buyer
         _cols = [x for x in market_x_full.columns
-                 if int(x.split('__')[1]) != agent_id]
+                 if int(x.split('__')[1]) != resource_id]
         return market_x_full[_cols]
 
     def __create_buyer_features(self,
@@ -263,16 +289,18 @@ class MarketClass:
                              market_x_full: pd.DataFrame):
 
         # -- Load Buyer data
-        logger.info(f"Processing buyer {buyer_cls.identifier} bid ...")
-        buyer_id = buyer_cls.identifier
-        buyer_bid = buyer_cls.initial_bid
-        buyer_bid_id = buyer_cls.market_bid_id
+        logger.info(f"Processing buyer {buyer_cls.resource_id} bid ...")
+        resource_id = buyer_cls.resource_id
+        user_id = buyer_cls.user_id
+        bid_price = buyer_cls.initial_bid
+        bid_id = buyer_cls.market_bid_id
         max_payment = buyer_cls.max_payment
         buyer_y = buyer_cls.y[["value"]].copy()
         buyer_y.rename(columns={"value": "target"}, inplace=True)
         gain_func = buyer_cls.gain_func
-        logger.debug(f"\n-- Buyer {buyer_id}"
-                     f"\nBid:{buyer_bid}"
+        logger.debug(f"\nResource ID: {resource_id}"
+                     f"\nUser ID:{user_id}"
+                     f"\nBid Price:{bid_price}"
                      f"\nMax.Payment:{max_payment}"
                      f"\nGain Function:{gain_func}"
                      f"\nlen(y):{len(buyer_y)}"
@@ -291,11 +319,11 @@ class MarketClass:
         # Select market features (all agents but buyer_id)
         logger.debug("Selecting market features ...")
         market_x = self.__select_market_features(
-            agent_id=buyer_id,
+            resource_id=resource_id,
             market_x_full=market_x_full
         )
         # -- Features & targets arrays:
-        sellers_features_names = list(market_x.columns)
+        sellers_features_name = list(market_x.columns)
         train_features, train_targets, test_features = self.__process_features(
             market_x=market_x,
             buyer_x=buyer_x,
@@ -312,14 +340,14 @@ class MarketClass:
 
         # -- Buyer Payment Calculation
         run_cycle = True  # Repeat while buyer_payment > max_payment
-        logger.debug(f"Calculating buyer {buyer_id} payment ...")
+        logger.debug(f"Calculating payment for resource ID {resource_id} ...")
+        t0 = time()
         while run_cycle:
             # Calculate buyer payment:
-            t0 = time()
             noisy_train_features, gain, payment = calc_buyer_payment(
                 features=train_features,
                 targets=train_targets,
-                bid_price=buyer_bid,
+                bid_price=bid_price,
                 gain_func=gain_func,
                 market_price=self.mkt_sess.market_price,
                 b_min=self.mkt_sess.b_min,
@@ -337,12 +365,12 @@ class MarketClass:
                 # Else, affect buyer bid (bid-epsilon) & repeat:
                 logger.warning(f"Payment ({payment}) higher than "
                                f"max_payment ({max_payment})!")  # noqa
-                buyer_bid = max(0, buyer_bid - self.mkt_sess.epsilon)
-                logger.warning(f"Bid value readjusted to {buyer_bid}. "
+                bid_price = max(0, bid_price - self.mkt_sess.epsilon)
+                logger.warning(f"Bid price readjusted to {bid_price}. "
                                f"Recomputing ...")
 
-        logger.debug(f"Calculating buyer {buyer_id} payment ... Ok! "
-                     f"({time() - t0:.2f}s)")  # noqa
+        logger.debug(f"Calculating payment for resource ID {resource_id} ... "
+                     f"Ok! ({time() - t0:.2f}s)")
 
         # -- Create Forecasts
         logger.debug("Creating forecasts ...")
@@ -351,23 +379,34 @@ class MarketClass:
             train_targets=train_targets,
             test_features_df=test_features,
         )
-        inserted = self.upload_forecasts(user_id=buyer_id, forecasts=forecasts)
+        inserted = upload_forecasts(
+            market_session_id=self.mkt_sess.session_id,
+            request=self.launch_time,
+            user_id=user_id,
+            resource_id=resource_id,
+            forecasts=forecasts,
+            table_name=self.FORECASTS_TABLE
+        )
         if inserted:
-            self.update_bid_has_forecast(user_id=buyer_id,
-                                         buyer_bid_id=buyer_bid_id)
-        logger.info(f"Processing buyer {buyer_id} bid ... Ok!")
+            update_bid_has_forecast(
+                user_id=user_id,
+                bid_id=bid_id,
+                table_name=self.BIDS_TABLE
+            )
+        logger.info(f"Processing buyer {buyer_cls.resource_id} bid ... Ok!")
         return {
             "features": train_features,
             "noisy_train_features": noisy_train_features,
-            "buyer_market_fee": market_fee,
+            "market_fee": market_fee,
             "payment": payment,
             "targets": train_targets,
             "gain_func": gain_func,
             "gain": gain,
-            "final_bid": buyer_bid,
+            "final_bid": bid_price,
             "initial_bid": buyer_cls.initial_bid,
-            "buyer_id": buyer_id,
-            "sellers_features_names": sellers_features_names,
+            "resource_id": resource_id,
+            "user_id": user_id,
+            "sellers_features_name": sellers_features_name,
         }
 
     def sellers_revenue(self):
@@ -377,16 +416,16 @@ class MarketClass:
                 logger.debug("Distributing revenue ...")
                 # Distribute payment by sellers:
                 sellers_id_list = list(self.sellers_data.keys())
-                buyer_id = input_kwargs["buyer_id"]
+                buyer_resource_id = input_kwargs["resource_id"]
                 sellers_revenue_split = calc_sellers_revenue(
-                    buyer_id=buyer_id,
+                    buyer_resource_id=buyer_resource_id,
                     noisy_features=input_kwargs["noisy_train_features"],
                     targets=input_kwargs["targets"],
                     gain_func=input_kwargs["gain_func"],
-                    buyer_payment=input_kwargs["payment"],
-                    buyer_market_fee=input_kwargs["buyer_market_fee"],
+                    buyer_resource_payment=input_kwargs["payment"],
+                    buyer_market_fee=input_kwargs["market_fee"],
                     sellers_id_list=sellers_id_list,
-                    sellers_features_names=input_kwargs["sellers_features_names"],  # noqa
+                    sellers_features_name=input_kwargs["sellers_features_name"],  # noqa
                     K=self.REVENUE_K,
                     lambd=self.REVENUE_LAMBDA,
                     n_hours=self.N_HOURS,
@@ -395,15 +434,15 @@ class MarketClass:
                     f"Sellers revenue split:\n{sellers_revenue_split}")
                 # Assign seller revenue
                 logger.debug("Storing revenue in sellers class ...")
-                self.buyers_data[buyer_id].set_payment_split(
+                self.buyers_data[buyer_resource_id].set_payment_split(
                     sellers_revenue_split
                 )
                 for seller_id in sellers_revenue_split.keys():
                     _r = sellers_revenue_split[seller_id].get("abs_revenue", 0)
                     self.sellers_data[seller_id].increment_revenue(_r)
                 logger.debug("Storing revenue in sellers class ... Ok!")
-                logger.debug(
-                    f"Distributing revenue ... Ok! ({time() - t0:.2f}s)")
+                logger.debug(f"Distributing revenue ... Ok! "
+                             f"({time() - t0:.2f}s)")
 
     def save_session_results(self):
         """
@@ -437,6 +476,17 @@ class MarketClass:
         if not is_valid:
             raise ValueError("Payments - Fee - Revenues != 0. Invalid session.")
 
+    def payment_and_revenue_per_user(self):
+        for resource_data in self.buyers_data.values():
+            user_id = resource_data.user_id
+            has_to_pay = resource_data.has_to_pay
+            self.users_data[user_id].sum_payment(has_to_pay)
+
+        for resource_data in self.sellers_data.values():
+            user_id = resource_data.user_id
+            has_to_receive = resource_data.has_to_receive
+            self.users_data[user_id].sum_revenue(has_to_receive)
+
     def run_session(self):
         """
         Run current market session
@@ -459,27 +509,39 @@ class MarketClass:
             e_msg = "Error! Insufficient buyers bids to start a new session."
             logger.error(e_msg)
             raise NoMarketBuyersExceptions(e_msg)
+
+        if len(self.users_data) == 0:
+            e_msg = "Error! Users data not loaded. Use self.users_data()."
+            logger.error(e_msg)
+            raise NoMarketUsersExceptions(e_msg)
+
         # -- 1. Create market dataset (aggregate sellers measurements data)
         market_df = self.__create_market_dataset()
         # -- 2. Create market features (NaNs filled with Zeros)
         market_x_full = self.__create_market_features(market_df=market_df)
-        # -- 3. Process payment & forecasts for each buyer agent
+        # -- 3. Process payment & forecasts for each buyer resource
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(self.payment_and_forecast)(buyer_cls, market_x_full)
             for buyer_cls in self.buyers_data.values()
         )
+
         # -- 3.1 Store results in each buyer cls & sum market fees:
         for out in self.buyer_outputs:
-            self.buyers_data[out["buyer_id"]].set_payment(out["payment"])
-            self.buyers_data[out["buyer_id"]].set_gain(out["gain"])
-            self.buyers_data[out["buyer_id"]].set_final_bid(out["final_bid"])
+            self.buyers_data[out["resource_id"]].set_payment(out["payment"])
+            self.buyers_data[out["resource_id"]].set_gain(out["gain"])
+            self.buyers_data[out["resource_id"]].set_final_bid(out["final_bid"])  # noqa
             self.mkt_sess.add_market_fee(
-                buyer_id=out["buyer_id"],
-                value=out["buyer_market_fee"]
+                resource_id=out["resource_id"],
+                value=out["market_fee"]
             )
-        # -- 4. Calculate Sellers Revenue
+
+        # -- 4. Calculate Revenue per Seller Resource
         self.sellers_revenue()
-        # -- 5. Save session results
+
+        # -- 5. Sum Payment / Revenue per User:
+        self.payment_and_revenue_per_user()
+
+        # -- 6. Save session results
         self.save_session_results()
 
     def update_market_price(self):
@@ -527,14 +589,10 @@ class MarketClass:
         market_session_id = self.mkt_sess.session_id
         # -- Process market fee payment (to market superuser):
         fees_iota = convert_mi_to_i(self.mkt_sess.total_market_fee)
-        # -- Todo: Adicionar metodo para saber admin user ID:
         # -- Todo: Adicionar Controlo de exceptions:
-        admin_user_id = 1
-        api_controller.post_session_balance(
-            user=admin_user_id,
+        api_controller.post_session_market_fee(
             market_session=market_session_id,
             amount=fees_iota,
-            transaction_type="revenue"
         )
         # -- Process payments for agents (updated market account)
         for buyer_id, buyer_info in self.mkt_sess.buyers_results.items():
@@ -554,47 +612,6 @@ class MarketClass:
                 amount=revenue_iota,
                 transaction_type="revenue"
             )
-
-    def upload_forecasts(self, user_id, forecasts):
-        # Create datetime col:
-        forecasts.index.name = "datetime"
-        forecasts.reset_index(drop=False, inplace=True)
-        # Create other cols:
-        forecasts["request"] = self.launch_time
-        forecasts["market_session_id"] = self.mkt_sess.session_id
-        forecasts["user_id"] = user_id
-        forecasts["registered_at"] = dt.datetime.utcnow()
-        forecasts["unit"] = "kw"  # Todo: Assure this is dynamic:
-        forecasts["resource_id"] = "tbd"  # Todo: Assure this is dynamic:
-        # Insert data in DB:
-        try:
-            db = PostgresDB.get_db_instance(config_name="default")
-            logger.debug(f"Forecast shape: {forecasts.shape}")
-            logger.debug(f"Inserting agent {user_id} forecasts ...")
-            db.insert_dataframe(df=forecasts, table="market_forecasts")
-            logger.debug(f"Inserting agent {user_id} forecasts ... Ok!")
-            return True
-        except Exception:
-            logger.exception(f"Failed to insert agent {user_id} forecasts")
-            return False
-
-    @staticmethod
-    def update_bid_has_forecast(user_id, buyer_bid_id):
-        try:
-            db = PostgresDB.get_db_instance(config_name="default")
-            logger.debug(f"Updating {user_id} - bid {buyer_bid_id} "
-                         f"'has_forecast' field ...")
-            query = f"UPDATE market_session_bid " \
-                    f"SET has_forecasts = true " \
-                    f"WHERE market_bid_id = {buyer_bid_id};"
-            db.execute_query(query=query)
-            logger.debug(f"Updating {user_id} - bid {buyer_bid_id} "
-                         f"'has_forecast' field ... Ok!")
-            return True
-        except Exception:
-            logger.exception(f"Failed update {user_id} - bid {buyer_bid_id} "
-                             f"'has_forecast' field.")
-            return False
 
     def open_next_session(self, api_controller=None):
         if api_controller is None:

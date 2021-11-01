@@ -11,8 +11,11 @@ from .wallet import WalletController, TangleController
 from .market import MarketClass
 from .market.helpers.api_helpers import (
     get_session_data,
-    get_measurements_data,
     close_no_bids_session
+)
+from .market.helpers.db_helpers import (
+    get_measurements_data,
+    get_measurements_data_mock,
 )
 from .market.helpers.units_helpers import (
     convert_session_data_to_mi,
@@ -63,19 +66,20 @@ class MarketController:
 
             # Post session weights if the session was correctly open:
             self.api.post_session_weights(
-                session_id=session["market_session_id"],
+                session_id=session["id"],
                 weights_p=first_session_cfg.weights_p
             )
             logger.info("Creating first market session ... Ok!")
 
         # List last market 'staged' sessions:
         staged_session = self.api.list_last_session(status='staged')
+        logger.info("Current 'STAGED' session:")
         logger.info(staged_session)
         logger.info("")
 
         # Change market session status from 'STAGED' to 'OPEN':
         self.api.update_market_session(
-            session_id=staged_session["market_session_id"],
+            session_id=staged_session["id"],
             status="open",
             open_ts=dt.datetime.utcnow()
         )
@@ -103,16 +107,14 @@ class MarketController:
         logger.info("")
         return response
 
-    def update_market_wallet_address(self, old_address, new_address):
+    def update_market_wallet_address(self, new_address):
         """
         Update current market wallet address
 
-        :param str old_address: Address to be updated
-        :param str new_address: Address to update to
+        :param str new_address: New address to replace current market address
         :return:
         """
         response = self.api.update_market_wallet_address(
-            old_address=old_address,
             new_address=new_address
         )
         logger.info(response)
@@ -127,14 +129,13 @@ class MarketController:
         """
         # Check open session:
         open_session = self.api.list_last_session(status='open')
+        logger.info("Current 'OPEN' session:")
         logger.info(open_session)
         logger.info("")
-
         # List bids for each session:
-        bids = self.api.list_session_bids(
-            session_id=open_session["market_session_id"]
-        )
-        logger.info(bids)
+        bids = self.api.list_session_bids(session_id=open_session["id"])
+        logger.info(f"There are {len(bids)} for this session.")
+        logger.info(json.dumps(bids, indent=2))
         logger.info("")
         return bids
 
@@ -145,22 +146,26 @@ class MarketController:
         :return:
         """
         # Check open session:
-        open_session = self.api.list_last_session(status='closed')
-        logger.info(open_session)
+        closed_session = self.api.list_last_session(status='closed')
+        logger.info("Current 'CLOSED' session:")
+        logger.info(closed_session)
         logger.info("")
 
         # List bids for each session:
         bids = self.api.list_session_bids(
-            session_id=open_session["market_session_id"],
+            session_id=closed_session["id"],
             confirmed=False,
         )
-        logger.info(bids)
+        logger.info(f"There are {len(bids)} 'UNCONFIRMED' bids for this "
+                    f"session.")
+        logger.info(json.dumps(bids, indent=2))
         logger.info("")
 
         # -- Get market wallet address:
         market_wallet_address = self.api.get_market_wallet_address()
 
         for b in bids:
+            logger.info(f"Validating bid {b['id']} - {b['tangle_msg_id']}")
             try:
                 valid_in_tangle = self.tangle.validate_message(
                     output_type="single",
@@ -172,9 +177,12 @@ class MarketController:
                     rsp = self.api.post_validate_bid(
                         tangle_msg_id=b["tangle_msg_id"]
                     )
-                    logger.info(rsp)
+                    logger.info(f"Validating bid {b['id']} - "
+                                f"{b['tangle_msg_id']} ... Ok!")
+                    logger.debug(rsp)
             except Exception:
-                logger.exception(f"Unable to validate bid {b}")
+                logger.exception(f"Validating bid {b['id']} - "
+                                 f"{b['tangle_msg_id']} ... Failed!")
 
     def close_market_session(self):
         """
@@ -184,12 +192,13 @@ class MarketController:
         """
         # List last market 'open' sessions:
         open_session = self.api.list_last_session(status='open')
+        logger.info("Current 'OPEN' session:")
         logger.info(open_session)
         logger.info("")
 
         # Change market session status from 'OPEN' to 'CLOSED':
         self.api.update_market_session(
-            session_id=open_session["market_session_id"],
+            session_id=open_session["id"],
             status="closed",
             close_ts=dt.datetime.utcnow()
         )
@@ -206,15 +215,19 @@ class MarketController:
         launch_time = launch_time.to_pydatetime()
 
         # ################################
-        # Fetch session data
+        # Fetch session info
         # #################################
-        # Fetch session data:
-        session_data, buyers_bids, active_sellers, price_weights = get_session_data(self.api)  # noqa
+        # Fetch session info:
+        session_info = get_session_data(self.api)
+        session_data = session_info[0]
+        bids_per_resource = session_info[1]
+        users_resources = session_info[2]
+        price_weights = session_info[3]
 
         # ###################################################
         # Check if there are sufficient bids to run market
         # ####################################################
-        if len(buyers_bids) == 0:
+        if len(bids_per_resource) == 0:
             close_no_bids_session(
                 api_controller=self.api,
                 curr_session_data=session_data,
@@ -228,39 +241,33 @@ class MarketController:
         # Convert units from IOTA to MIOTA:
         # ####################################
         session_data = convert_session_data_to_mi(data=session_data)
-        buyers_bids = convert_buyers_bids_to_mi(bids=buyers_bids)
-
-        # ################################
-        # Check market buyers/sellers ID's
-        # ################################
-        buyers_ids = [x["user"] for x in buyers_bids if x["confirmed"] is True]
-        sellers_ids = active_sellers
+        bids_per_resource = convert_buyers_bids_to_mi(bids=bids_per_resource)
 
         # ################################
         # Query agents measurements:
         # ################################
-        measurements = get_measurements_data(
-            buyers_ids=buyers_ids,
-            sellers_ids=sellers_ids,
+        measurements = get_measurements_data_mock(
+            users_resources=users_resources,
             market_launch_time=launch_time
         )
 
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=-1)
+        mc = MarketClass(n_jobs=1)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
             launch_time=launch_time
         )
         mc.show_session_details()
-        mc.start_session(api_controller=self.api)
-        # -- Load agents bids:
-        mc.load_buyers_bids(bids=buyers_bids)
-        mc.load_sellers(identifiers=active_sellers)
-        # -- Load agents measurements data:
-        mc.load_agents_measurements(measurements=measurements)
+        # mc.start_session(api_controller=self.api)
+        # -- Load resources bids:
+        mc.load_resources_bids(bids=bids_per_resource)
+        mc.load_users_resources(users_resources=users_resources)
+        mc.load_users()
+        # -- Load resources measurements data:
+        mc.load_resources_measurements(measurements=measurements)
         # -- Run market session:
         mc.run_session()
         # -- Display session results
@@ -268,13 +275,13 @@ class MarketController:
         # -- Process payments:
         mc.process_payments(api_controller=self.api)
         # -- Update market price for next session:
-        mc.update_market_price()
+        # mc.update_market_price()
         # -- End session:
-        mc.end_session(api_controller=self.api)
+        # mc.end_session(api_controller=self.api)
         # -- Open Next session:
-        mc.open_next_session(api_controller=self.api)
+        # mc.open_next_session(api_controller=self.api)
         # -- Display session results
-        mc.show_session_results()
+        # mc.show_session_results()
         return True
 
     def list_user_market_balance(self):

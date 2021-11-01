@@ -13,8 +13,7 @@ register = endpoint(*http_methods, "/api/user/register")
 
 # User & Role
 user_list = endpoint(*http_methods, "/api/user/list")
-user_role = endpoint(*http_methods, "/api/user/role")
-role_by_user = endpoint(*http_methods, "/api/user/role-by-user/")
+user_resources = endpoint(*http_methods, "/api/user/resource")
 wallet_address = endpoint(*http_methods, "/api/user/wallet-address")
 market_wallet_address = endpoint(*http_methods, "/api/market/wallet-address")
 
@@ -22,6 +21,7 @@ market_wallet_address = endpoint(*http_methods, "/api/market/wallet-address")
 market_session = endpoint(*http_methods, "/api/market/session")
 market_balance = endpoint(*http_methods, "/api/market/balance")
 market_session_balance = endpoint(*http_methods, "/api/market/session-balance")
+market_session_fee = endpoint(*http_methods, "/api/market/session-fee")
 market_bid = endpoint(*http_methods, "/api/market/bid")
 market_validate_bids = endpoint(*http_methods, "/api/market/validate/bid-payment")
 market_transfer_out = endpoint(*http_methods, "/api/market/transfer-out")

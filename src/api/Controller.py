@@ -37,13 +37,16 @@ class Controller(RequestController):
                            log_msg: str,
                            exception_cls,
                            data: dict = None,
-                           params: dict = None) -> dict:
+                           params: dict = None,
+                           url_params: list = None,
+                           ) -> dict:
         self.__check_if_token_exists()
         t0 = time()
         rsp = self.request(
             endpoint=endpoint_cls,
             data=data,
             params=params,
+            url_params=url_params,
             auth_token=self.access_token)
         # -- Inspect response:
         if rsp.status_code == HTTPStatus.OK:
@@ -137,22 +140,13 @@ class Controller(RequestController):
         )
         return response['data']
 
-    def get_user_market_balances(self):
-        response = self.__request_template(
-            endpoint_cls=Endpoint(market_balance.GET, market_balance.uri),
-            log_msg="Getting account balances for market users",
-            exception_cls=MarketAccountException
-        )
-        return response['data']
-
-    def get_account_balance(self, user_id=None):
+    def get_user_market_balances(self, user_id=None):
         params = {}
         if user_id:
             params["user_id"] = user_id
         response = self.__request_template(
             endpoint_cls=Endpoint(market_balance.GET, market_balance.uri),
-            log_msg="Getting account balances",
-            params=params,
+            log_msg="Getting account balances for market users",
             exception_cls=MarketAccountException
         )
         return response['data']
@@ -162,42 +156,6 @@ class Controller(RequestController):
             endpoint_cls=Endpoint(user_list.GET, user_list.uri),
             log_msg="Getting users",
             exception_cls=UserException
-        )
-        return response['data']
-
-    def create_market_role(self, role: str):
-        payload = {"role": role}
-        response = self.__request_template(
-            endpoint_cls=Endpoint(user_role.POST, user_role.uri),
-            log_msg="Creating market role",
-            data=payload,
-            exception_cls=UserRoleException
-        )
-        return response['data']
-
-    def add_role_to_user(self, user: int, role: int):
-        payload = {"user": user, "role": role}
-        response = self.__request_template(
-            endpoint_cls=Endpoint(user_role.POST, user_role.uri),
-            log_msg=f"Adding role {role} to user {user}",
-            data=payload,
-            exception_cls=UserRoleException
-        )
-        return response['data']
-
-    def list_market_roles(self):
-        response = self.__request_template(
-            endpoint_cls=Endpoint(user_role.GET, user_role.uri),
-            log_msg="Getting current market roles",
-            exception_cls=UserRoleException
-        )
-        return response['data']
-
-    def list_market_roles_per_user(self):
-        response = self.__request_template(
-            endpoint_cls=Endpoint(role_by_user.GET, role_by_user.uri),
-            log_msg="Getting market roles per user",
-            exception_cls=UserRoleException
         )
         return response['data']
 
@@ -235,12 +193,13 @@ class Controller(RequestController):
         if isinstance(kwargs.get("open_ts", None), dt.datetime):
             kwargs["open_ts"] = kwargs["open_ts"].strftime("%Y-%m-%dT%H:%M:%S.%f")  # noqa
         # -- Perform Request:
-        payload = {"market_session_id": session_id}
+        payload = {}
         payload.update(kwargs)
         response = self.__request_template(
             endpoint_cls=Endpoint(market_session.PUT, market_session.uri),
             log_msg=f"Updating market session {session_id}",
             data=payload,
+            url_params=[session_id],
             exception_cls=MarketSessionException
         )
         return response['data']
@@ -306,25 +265,28 @@ class Controller(RequestController):
         sorted_weights_ = sorted(weights_, key=lambda tup: tup[1])
         return np.array([x[1] for x in sorted_weights_])
 
-    def list_active_sellers(self):
-        params = {"role_id": self.seller_role_id}
+    def list_user_resources(self, to_forecast=None):
+        params = {}
+        if to_forecast is not None:
+            params["to_forecast"] = to_forecast
         response = self.__request_template(
-            endpoint_cls=Endpoint(role_by_user.GET, role_by_user.uri),
-            log_msg="Getting active sellers",
+            endpoint_cls=Endpoint(user_resources.GET, user_resources.uri),
+            log_msg=f"Getting user resources (to_forecast = {to_forecast})",
             params=params,
             exception_cls=UserException
         )
-        return [x["user"] for x in response['data']
-                if x["role"] == self.seller_role_id]
+        return response["data"]
 
     def place_bid(self,
                   session_id: int,
+                  resource_id: int,
                   bid_price,
                   max_payment,
                   gain_func):
 
         payload = {
-            "session_id": session_id,
+            "market_session": session_id,
+            "resource": resource_id,
             "bid_price": bid_price,
             "max_payment": max_payment,
             "gain_func": gain_func
@@ -359,15 +321,14 @@ class Controller(RequestController):
         )
         return response['data']
 
-    def update_market_wallet_address(self, old_address, new_address):
+    def update_market_wallet_address(self, new_address):
         payload = {
-            "old_wallet_address": old_address,
-            "new_wallet_address": new_address,
+            "wallet_address": new_address,
         }
         response = self.__request_template(
             endpoint_cls=Endpoint(market_wallet_address.PUT,
                                   market_wallet_address.uri),
-            log_msg="Getting market wallet address",
+            log_msg="Updating market wallet address",
             data=payload,
             exception_cls=MarketWalletAddressException
         )
@@ -376,7 +337,7 @@ class Controller(RequestController):
     def list_session_bids(self,
                           session_id: int,
                           confirmed: int = None):
-        params = {"market_session_id": session_id}
+        params = {"market_session": session_id}
         if confirmed is not None:
             params["confirmed"] = confirmed
         response = self.__request_template(
@@ -444,16 +405,40 @@ class Controller(RequestController):
         )
         return response["data"]
 
-    def post_session_balance(self, user: int, amount: int, transaction_type: str, market_session: int):
+    def post_session_market_fee(self,
+                                session_id: int,
+                                fee_amount: float):
         payload = {
-            "amount": amount,
-            "user_id": user,
-            "transaction_type": transaction_type,
-            "market_session": market_session,
+            "market_session": session_id,
+            "amount": fee_amount,
         }
         response = self.__request_template(
-            endpoint_cls=Endpoint(market_session_balance.POST, market_session_balance.uri),
-            log_msg=f"Transferring {amount} to user {user} market account",
+            endpoint_cls=Endpoint(market_session_fee.POST,
+                                  market_session_fee.uri),
+            log_msg=f"Registering market fee of {fee_amount} "
+                    f"for market session {session_id}",
+            data=payload,
+            exception_cls=MarketSessionFee
+        )
+        return response['data']
+
+    def post_session_balance(self,
+                             user_id: int,
+                             resource_id: int,
+                             amount: int,
+                             transaction_type: str,
+                             session_id: int):
+        payload = {
+            "amount": amount,
+            "user": user_id,
+            "resource": resource_id,
+            "transaction_type": transaction_type,
+            "market_session": session_id,
+        }
+        response = self.__request_template(
+            endpoint_cls=Endpoint(market_session_balance.POST,
+                                  market_session_balance.uri),
+            log_msg=f"Transferring {amount} to user {user_id} market account",
             data=payload,
             exception_cls=UserSessionBalance
         )

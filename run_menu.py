@@ -96,7 +96,7 @@ def market_configuration():
         print("2  - Get current market wallet address")
         print("3  - Update market wallet address")
         _sep()
-        print("9 - Return to previous menu.")
+        print("\\ - Return to previous menu.")
         print("0 - Exit")
         _empty()
         choice = input("Please make a choice: ")
@@ -114,15 +114,13 @@ def market_configuration():
                 logger.error("Failed to get wallet address.")
         elif choice == "3":
             try:
-                old_address = input("Enter market wallet address (old): ")
-                new_address = input("Enter market wallet address (new): ")
+                new_address = input("New market wallet address: ")
                 market.update_market_wallet_address(
-                    old_address=old_address,
                     new_address=new_address
                 )
             except MarketWalletAddressException:
                 pass
-        elif choice == "9":
+        elif choice == "\\":
             return
         elif choice == "0":
             exit("Exit.")
@@ -152,7 +150,7 @@ def market_menu():
         print("7  - Transfer token balance back to agents")
         print("8  - Validate token transfers")
         _sep()
-        print("9 - Return to previous menu.")
+        print("\\ - Return to previous menu.")
         print("0 - Exit")
         _empty()
         choice = input("Please make a choice: ")
@@ -168,8 +166,7 @@ def market_menu():
         elif choice == "2":
             try:
                 # Create first market session:
-                bids = market.get_buyers_bids()
-                pprint(bids)
+                market.get_buyers_bids()
             except Exception:
                 pass
         elif choice == "3":
@@ -208,7 +205,7 @@ def market_menu():
                 market.validate_tokens_transfer()
             except MarketSessionException:
                 pass
-        elif choice == "9":
+        elif choice == "\\":
             return
         elif choice == "0":
             exit("Exit.")
@@ -228,7 +225,7 @@ def wallet_menu():
         print("2  - Get wallet balance")
         print("3  - Transfer balance to address")
         _sep()
-        print("9 - Return to previous menu.")
+        print("\\ - Return to previous menu.")
         print("0 - Exit")
         _empty()
         choice = input("Please make a choice: ")
@@ -250,7 +247,7 @@ def wallet_menu():
             # Close market session (no more bids):
             try:
                 amount = input("Enter transfer amount "
-                               "(use 'FB' keywork for full balance "
+                               "(use 'FB' keyword for full balance "
                                "transfer): ")
                 if amount.lower() == "fb":
                     amount = wallet.get_balance()["available"]
@@ -265,7 +262,7 @@ def wallet_menu():
                 print("Node Response:", node_response)
             except Exception as ex:
                 logger.exception(repr(ex))
-        elif choice == "9":
+        elif choice == "\\":
             return
         elif choice == "0":
             exit("Exit.")

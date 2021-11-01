@@ -173,9 +173,10 @@ def create_forecast(train_features, train_targets, test_features_df):
     # Train/Test split:
     X_forecast = test_features_df.values
     # Standardize features:
-    scaler_x = StandardScaler()
-    X_train = scaler_x.fit_transform(train_features)
-    X_forecast = scaler_x.transform(X_forecast)
+    # scaler_x = StandardScaler()
+    # X_train = scaler_x.fit_transform(train_features)
+    # X_forecast = scaler_x.transform(X_forecast)
+    X_train = train_features
     #  Train model:
     model = LinearRegression(fit_intercept=True).fit(X_train, train_targets)
     # Compute forecasts:
