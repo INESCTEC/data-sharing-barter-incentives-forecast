@@ -254,7 +254,7 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=1)
+        mc = MarketClass(n_jobs=-1)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
@@ -275,13 +275,13 @@ class MarketController:
         # -- Process payments:
         mc.process_payments(api_controller=self.api)
         # -- Update market price for next session:
-        # mc.update_market_price()
+        mc.update_market_price()
         # -- End session:
-        # mc.end_session(api_controller=self.api)
+        mc.end_session(api_controller=self.api)
         # -- Open Next session:
-        # mc.open_next_session(api_controller=self.api)
+        mc.open_next_session(api_controller=self.api)
         # -- Display session results
-        # mc.show_session_results()
+        mc.show_session_results()
         return True
 
     def list_user_market_balance(self):

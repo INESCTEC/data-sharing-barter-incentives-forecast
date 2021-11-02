@@ -174,25 +174,25 @@ def market_menu():
             try:
                 market.close_market_session()
             except Exception:
-                pass
+                logger.exception("Failed to close session.")
         elif choice == "4":
             # Approve buyers bids:
             try:
                 market.approve_buyers_bids()
             except Exception:
-                pass
+                logger.exception("Failed to approve bids.")
         elif choice == "5":
             # Run market session:
             try:
                 market.run_market_session()
             except Exception:
-                pass
+                logger.exception("Failed to run market session.")
         elif choice == "6":
+            # List users market balance:
             try:
-                # List users market balance:
                 market.list_user_market_balance()
             except Exception:
-                pass
+                logger.exception("Failed to list user market balance.")
         elif choice == "7":
             try:
                 # Transfer tokens back to clients:

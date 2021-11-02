@@ -539,7 +539,8 @@ class MarketClass:
         self.sellers_revenue()
 
         # -- 5. Sum Payment / Revenue per User:
-        self.payment_and_revenue_per_user()
+        # todo: verificar se é necessário metodo `payment_and_revenue_per_user`
+        # self.payment_and_revenue_per_user()
 
         # -- 6. Save session results
         self.save_session_results()
@@ -591,24 +592,28 @@ class MarketClass:
         fees_iota = convert_mi_to_i(self.mkt_sess.total_market_fee)
         # -- Todo: Adicionar Controlo de exceptions:
         api_controller.post_session_market_fee(
-            market_session=market_session_id,
-            amount=fees_iota,
+            session_id=market_session_id,
+            fee_amount=fees_iota,
         )
         # -- Process payments for agents (updated market account)
-        for buyer_id, buyer_info in self.mkt_sess.buyers_results.items():
+        for resource_id, buyer_info in self.mkt_sess.buyers_results.items():
             payment_iota = convert_mi_to_i(buyer_info["has_to_pay"])
+            user_id = buyer_info["user_id"]
             api_controller.post_session_balance(
-                user=buyer_id,
-                market_session=market_session_id,
+                user_id=user_id,
+                resource_id=resource_id,
+                session_id=market_session_id,
                 amount=-payment_iota,
                 transaction_type="payment"
             )
         # -- Process revenue for agents (updated market account)
-        for seller_id, seller_info in self.mkt_sess.sellers_results.items():
+        for resource_id, seller_info in self.mkt_sess.sellers_results.items():
             revenue_iota = convert_mi_to_i(seller_info["has_to_receive"])
+            user_id = seller_info["user_id"]
             api_controller.post_session_balance(
-                user=seller_id,
-                market_session=market_session_id,
+                user_id=user_id,
+                resource_id=resource_id,
+                session_id=market_session_id,
                 amount=revenue_iota,
                 transaction_type="revenue"
             )
