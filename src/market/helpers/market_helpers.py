@@ -205,17 +205,20 @@ def shapley_aprox_parallel(Y, X, K, n_hours, gain_func):
 # @timeit
 def shapley_robust(Y, X, K, lambd, n_hours, gain_func):
     M = X.shape[1] - 1
-    phi_ = np.repeat(0.0, M)
-    phi = shapley_aprox(Y, X, K, n_hours, gain_func)
-    for m in np.arange(0, M):
-        s = 0
-        for k in np.arange(0, M):
-            if k != m:
-                s += cos_similarity(X[:, m], X[:, k])
-        phi_[m] = phi[m] * np.exp(-lambd * s)
-    if phi.sum() > 0:
-        phi = phi_ / phi_.sum()
-    return phi
+    if M == 1:
+        return 1
+    else:
+        phi_ = np.repeat(0.0, M)
+        phi = shapley_aprox(Y, X, K, n_hours, gain_func)
+        for m in np.arange(0, M):
+            s = 0
+            for k in np.arange(0, M):
+                if k != m:
+                    s += cos_similarity(X[:, m], X[:, k])
+            phi_[m] = phi[m] * np.exp(-lambd * s)
+        if phi.sum() > 0:
+            phi = phi_ / phi_.sum()
+        return phi
 
 
 # #############################################################################
