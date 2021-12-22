@@ -9,6 +9,7 @@ load_dotenv('.env')
 from conf import settings
 from src.wallet import WalletController
 from src.MarketController import MarketController
+from src.market.util.custom_exceptions import NoMarketBuyersExceptions
 
 from src.api.exception.APIException import (
     NoMarketSessionException,
@@ -170,28 +171,30 @@ def market_menu():
             except Exception:
                 pass
         elif choice == "3":
-            # Close market session (no more bids):
             try:
+                # Close market session (no more bids):
                 market.close_market_session()
             except Exception:
                 logger.exception("Failed to close session.")
         elif choice == "4":
-            # Approve buyers bids:
             try:
+                # Approve buyers bids:
                 market.approve_buyers_bids()
             except Exception:
                 logger.exception("Failed to approve bids.")
         elif choice == "5":
-            # Run market session:
             try:
+                # Run market session:
                 market.run_market_session()
-            except Exception:
+            except NoMarketBuyersExceptions:
+                logger.error("Insuficient market bids (buyers) to create a new session.")
+            except BaseException:
                 logger.exception("Failed to run market session.")
         elif choice == "6":
-            # List users market balance:
             try:
+                # List users market balance:
                 market.list_user_market_balance()
-            except Exception:
+            except BaseException:
                 logger.exception("Failed to list user market balance.")
         elif choice == "7":
             try:
@@ -201,7 +204,7 @@ def market_menu():
                 pass
         elif choice == "8":
             try:
-                # Transfer tokens back to clients:
+                # Validate final token balance transfers:
                 market.validate_tokens_transfer()
             except MarketSessionException:
                 pass

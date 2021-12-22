@@ -36,6 +36,7 @@ from src.market.helpers.units_helpers import convert_mi_to_i
 
 
 class MarketClass:
+    DEBUG = False
     N_HOURS = 24 * 31                  # no. hours in evaluation period
     FORECAST_HORIZON = 1               # forecast horizon in market
     N_HOURS_IN_HIST = 8760             # no. hours in historical data
@@ -49,7 +50,7 @@ class MarketClass:
     def __init__(self, n_jobs=-1):
         self.users_data = {}
         self.users_list = []
-        self.users_resources_list = []
+        self.users_resources = []
         self.buyers_data = {}
         self.sellers_data = {}
         self.mkt_sess = None
@@ -57,6 +58,10 @@ class MarketClass:
         self.finish_time = None
         self.buyer_outputs = []
         self.n_jobs = n_jobs
+
+    def activate_debug_mode(self):
+        self.DEBUG = True
+        logger.remove()
 
     def init_session(self, session_data, price_weights, launch_time):
         self.launch_time = launch_time
@@ -128,32 +133,43 @@ class MarketClass:
             raise TypeError("Error! bids argument must be a list of dicts")
 
         for buyer_bid in bids:
-            # Init Buyer class with each bid information:
-            cls = BuyerClass(
-                user_id=buyer_bid["user"],
-                resource_id=buyer_bid["resource"],
-                initial_bid=buyer_bid["bid_price"],
-                max_payment=buyer_bid["max_payment"],
-                gain_func=buyer_bid["gain_func"],
-                market_bid_id=buyer_bid["id"]
-            ).validate_attributes()
-            self.buyers_data[cls.resource_id] = cls
+            user_id = buyer_bid["user"]
+            resource_id = buyer_bid["resource"]
+            if user_id not in self.users_list:
+                logger.warning(f"Unable to load bid for user/resource "
+                               f"{user_id}/{resource_id}. This user resource "
+                               f"was not properly loaded into user list.")
+            else:
+                # Init Buyer class with each bid information:
+                self.buyers_data[resource_id] = BuyerClass(
+                    user_id=user_id,
+                    resource_id=resource_id,
+                    initial_bid=buyer_bid["bid_price"],
+                    max_payment=buyer_bid["max_payment"],
+                    gain_func=buyer_bid["gain_func"],
+                    market_bid_id=buyer_bid["id"]
+                ).validate_attributes()
 
     def load_users_resources(self, users_resources: list):
         if not isinstance(users_resources, list):
             raise TypeError("Error! a list of resources must be provided")
+
         # Init Seller class with each seller identification:
         self.users_resources = users_resources
         for resource_data in self.users_resources:
             user_id = resource_data["user"]
-            cls = SellerClass(
+            resource_id = resource_data["id"]
+            self.sellers_data[resource_id] = SellerClass(
                 user_id=user_id,
-                resource_id=resource_data["id"],
-            )
-            cls.validate_attributes()
-            self.sellers_data[cls.resource_id] = cls
+                resource_id=resource_id,
+            ).validate_attributes()
+
             if user_id not in self.users_list:
                 self.users_list.append(user_id)
+
+        # Load users data (based on resource id's)
+        for user_id in self.users_list:
+            self.users_data[user_id] = UserClass(user_id=user_id)
 
     def load_resources_measurements(self, measurements: dict):
         if not isinstance(measurements, dict):
@@ -170,10 +186,6 @@ class MarketClass:
                 self.buyers_data[resource_id].set_measurements(_df)
             if resource_id in self.sellers_data:
                 self.sellers_data[resource_id].set_measurements(_df)
-
-    def load_users(self):
-        for user_id in self.users_list:
-            self.users_data[user_id] = UserClass(user_id=user_id)
 
     @staticmethod
     def __preprocess_buyer_data(data, expected_dates):
@@ -284,9 +296,9 @@ class MarketClass:
         test_features = features_[launch_time_:]
         return train_features, train_targets, test_features
 
-    def payment_and_forecast(self,
-                             buyer_cls,
-                             market_x_full: pd.DataFrame):
+    def __calculate_payment_and_forecast(self,
+                                         buyer_cls,
+                                         market_x_full: pd.DataFrame):
 
         # -- Load Buyer data
         logger.info(f"Processing buyer {buyer_cls.resource_id} bid ...")
@@ -379,20 +391,23 @@ class MarketClass:
             train_targets=train_targets,
             test_features_df=test_features,
         )
-        inserted = upload_forecasts(
-            market_session_id=self.mkt_sess.session_id,
-            request=self.launch_time,
-            user_id=user_id,
-            resource_id=resource_id,
-            forecasts=forecasts,
-            table_name=self.FORECASTS_TABLE
-        )
-        if inserted:
-            update_bid_has_forecast(
+
+        if not self.DEBUG:
+            inserted = upload_forecasts(
+                market_session_id=self.mkt_sess.session_id,
+                request=self.launch_time,
                 user_id=user_id,
-                bid_id=bid_id,
-                table_name=self.BIDS_TABLE
+                resource_id=resource_id,
+                forecasts=forecasts,
+                table_name=self.FORECASTS_TABLE
             )
+            if inserted:
+                update_bid_has_forecast(
+                    user_id=user_id,
+                    bid_id=bid_id,
+                    table_name=self.BIDS_TABLE
+                )
+
         logger.info(f"Processing buyer {buyer_cls.resource_id} bid ... Ok!")
         return {
             "features": train_features,
@@ -409,7 +424,7 @@ class MarketClass:
             "sellers_features_name": sellers_features_name,
         }
 
-    def sellers_revenue(self):
+    def define_sellers_revenue(self):
         for i, input_kwargs in enumerate(self.buyer_outputs):
             if input_kwargs["payment"] > 0:
                 t0 = time()
@@ -487,7 +502,7 @@ class MarketClass:
             has_to_receive = resource_data.has_to_receive
             self.users_data[user_id].sum_revenue(has_to_receive)
 
-    def run_session(self):
+    def define_payments_and_forecasts(self):
         """
         Run current market session
 
@@ -505,7 +520,7 @@ class MarketClass:
         """
         logger.info("-" * 70)
         logger.info(f"Running session {self.mkt_sess.session_id}...")
-        if len(self.buyers_data) == 0:
+        if len(self.buyers_data) <= 1:
             e_msg = "Error! Insufficient buyers bids to start a new session."
             logger.error(e_msg)
             raise NoMarketBuyersExceptions(e_msg)
@@ -521,7 +536,9 @@ class MarketClass:
         market_x_full = self.__create_market_features(market_df=market_df)
         # -- 3. Process payment & forecasts for each buyer resource
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
-            delayed(self.payment_and_forecast)(buyer_cls, market_x_full)
+            delayed(
+                self.__calculate_payment_and_forecast
+            )(buyer_cls, market_x_full)
             for buyer_cls in self.buyers_data.values()
         )
 
@@ -535,15 +552,15 @@ class MarketClass:
                 value=out["market_fee"]
             )
 
-        # -- 4. Calculate Revenue per Seller Resource
-        self.sellers_revenue()
-
-        # -- 5. Sum Payment / Revenue per User:
-        # todo: verificar se é necessário metodo `payment_and_revenue_per_user`
-        # self.payment_and_revenue_per_user()
-
-        # -- 6. Save session results
-        self.save_session_results()
+        # # -- 4. Calculate Revenue per Seller Resource
+        # self.sellers_revenue()
+        #
+        # # -- 5. Sum Payment / Revenue per User:
+        # # todo: verificar se é necessário metodo `payment_and_revenue_per_user`
+        # # self.payment_and_revenue_per_user()
+        #
+        # # -- 6. Save session results
+        # self.save_session_results()
 
     def update_market_price(self):
         logger.info("-" * 70)

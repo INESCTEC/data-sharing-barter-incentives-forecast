@@ -125,7 +125,7 @@ def square_rooted(x):
 def cos_similarity(x, y):
     numerator = sum(a * b for a, b in zip(x, y))
     denominator = square_rooted(x) * square_rooted(y)
-    return np.round(np.abs(numerator) / np.float(denominator), 3)
+    return np.round(np.abs(numerator) / float(denominator), 3)
 
 
 # 7. PAYMENT DIVISION - PAPER'S ALGORITHM 1

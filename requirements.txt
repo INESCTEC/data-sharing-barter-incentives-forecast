@@ -9,3 +9,4 @@ pytest
 python-dotenv
 psycopg2
 sqlalchemy
+pytest-cov

@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from collections import namedtuple
 
-fields = ('GET', 'POST', 'PUT', 'DELETE', 'uri')
+fields = ('GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'uri')
 endpoint = namedtuple('endpoint', fields, defaults=(None,) * len(fields))
 
 # HTTP methods
-http_methods = "GET", "POST", "PUT", "DELETE",
+http_methods = "GET", "POST", "PUT", "DELETE", "PATCH",
 
 # Authentication
 login = endpoint(*http_methods, "/api/token/login")
