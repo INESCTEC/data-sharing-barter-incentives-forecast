@@ -196,7 +196,7 @@ class Controller(RequestController):
         payload = {}
         payload.update(kwargs)
         response = self.__request_template(
-            endpoint_cls=Endpoint(market_session.PUT, market_session.uri),
+            endpoint_cls=Endpoint(market_session.PATCH, market_session.uri),
             log_msg=f"Updating market session {session_id}",
             data=payload,
             url_params=[session_id],
