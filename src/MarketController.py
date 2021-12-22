@@ -261,15 +261,16 @@ class MarketController:
             launch_time=launch_time
         )
         mc.show_session_details()
-        # mc.start_session(api_controller=self.api)
+        mc.start_session(api_controller=self.api)
         # -- Load resources bids:
-        mc.load_resources_bids(bids=bids_per_resource)
         mc.load_users_resources(users_resources=users_resources)
-        mc.load_users()
+        mc.load_resources_bids(bids=bids_per_resource)
         # -- Load resources measurements data:
         mc.load_resources_measurements(measurements=measurements)
         # -- Run market session:
-        mc.run_session()
+        mc.define_payments_and_forecasts()
+        mc.define_sellers_revenue()
+        mc.save_session_results()
         # -- Display session results
         mc.show_session_results()
         # -- Process payments:

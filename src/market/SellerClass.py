@@ -18,6 +18,7 @@ class SellerClass(ValidatorClass):
         if self.resource_id is None:
             raise ValueError("BuyerClass resource_id not defined.")
         self.validate_attr_types()
+        return self
 
     @property
     def details(self):
