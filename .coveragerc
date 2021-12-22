@@ -1,4 +1,8 @@
+[run]
+omit =
+    */tests/*
+    */examples/*
+
 [report]
-fail_under=0.4
+fail_under=0.7
 precision=2
-omit=
