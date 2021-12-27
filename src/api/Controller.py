@@ -117,7 +117,7 @@ class Controller(RequestController):
             raise LoginException(message=log_msg, errors=rsp.json())
 
     def get_user_wallet_address(self, user_id):
-        params = {"user_id": user_id}
+        params = {"user": user_id}
         response = self.__request_template(
             endpoint_cls=Endpoint(wallet_address.GET, wallet_address.uri),
             log_msg=f"Getting user {user_id} wallet address",
@@ -143,7 +143,7 @@ class Controller(RequestController):
     def get_user_market_balances(self, user_id=None):
         params = {}
         if user_id:
-            params["user_id"] = user_id
+            params["user"] = user_id
         response = self.__request_template(
             endpoint_cls=Endpoint(market_balance.GET, market_balance.uri),
             log_msg="Getting account balances for market users",
@@ -364,7 +364,7 @@ class Controller(RequestController):
             "is_solid": False
         }
         if user_id:
-            params["user_id"] = user_id
+            params["user"] = user_id
         response = self.__request_template(
             endpoint_cls=Endpoint(market_transfer_out.GET,
                                   market_transfer_out.uri),
