@@ -234,7 +234,7 @@ class Controller(RequestController):
 
     def list_last_session(self, status: str):
         # todo: ir logo buscar só uma sessao pela rest (e.g. query limit 1)
-        params = {"status": status}
+        params = {"status": status, "latest_only": True}
         response = self.__request_template(
             endpoint_cls=Endpoint(market_session.GET, market_session.uri),
             log_msg=f"Getting last '{status}' market session",
@@ -243,10 +243,7 @@ class Controller(RequestController):
         )
         # Get sessions data - check if there are open sessions:
         sessions = response['data']
-        if len(sessions) > 0:
-            sessions = sessions[-1]
-            return sessions
-        elif len(sessions) == 0:
+        if len(sessions) == 0:
             log_msg = f"No market sessions with the status: {status}"
             logger.warning(log_msg)
             raise NoMarketSessionException(message=log_msg,
