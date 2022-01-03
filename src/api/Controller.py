@@ -239,7 +239,7 @@ class Controller(RequestController):
             params["status"] = status
             msg = f"Getting last '{status}' market session"
         else:
-            msg = f"Getting last market session."
+            msg = "Getting last market session."
 
         response = self.__request_template(
             endpoint_cls=Endpoint(market_session.GET, market_session.uri),
@@ -250,7 +250,7 @@ class Controller(RequestController):
         # Get sessions data - check if there are open sessions:
         sessions = response['data']
         if len(sessions) == 0:
-            log_msg = f"No market sessions available."
+            log_msg = "No market sessions available."
             logger.warning(log_msg)
             raise NoMarketSessionException(message=log_msg,
                                            errors=response)
