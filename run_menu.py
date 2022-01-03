@@ -15,6 +15,7 @@ from src.api.exception.APIException import (
     NoMarketSessionException,
     MarketSessionException,
     MarketWalletAddressException,
+    MarketAccountException
 )
 
 # logger:
@@ -150,6 +151,8 @@ def market_menu():
         print("6  - Get users market balance")
         print("7  - Transfer token balance back to agents")
         print("8  - Validate token transfers")
+        print("9  - List last session available.")
+        print("10  - Change session status.")
         _sep()
         print("\\ - Return to previous menu.")
         print("0 - Exit")
@@ -160,26 +163,32 @@ def market_menu():
             try:
                 # Create first market session:
                 market.open_market_session()
-            except NoMarketSessionException:
-                pass
-            except MarketSessionException:
-                pass
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to open session.")
         elif choice == "2":
             try:
                 # Create first market session:
                 market.get_buyers_bids()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
             except Exception:
-                pass
+                logger.exception("Failed to list bids.")
         elif choice == "3":
             try:
                 # Close market session (no more bids):
                 market.close_market_session()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
             except Exception:
                 logger.exception("Failed to close session.")
         elif choice == "4":
             try:
                 # Approve buyers bids:
                 market.approve_buyers_bids()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
             except Exception:
                 logger.exception("Failed to approve bids.")
         elif choice == "5":
@@ -194,20 +203,44 @@ def market_menu():
             try:
                 # List users market balance:
                 market.list_user_market_balance()
+            except MarketAccountException as ex:
+                logger.error(ex)
             except BaseException:
                 logger.exception("Failed to list user market balance.")
         elif choice == "7":
             try:
                 # Transfer tokens back to clients:
                 market.transfer_tokens_out()
-            except MarketSessionException:
-                pass
+            except MarketSessionException as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to transfer tokens out")
         elif choice == "8":
             try:
                 # Validate final token balance transfers:
                 market.validate_tokens_transfer()
-            except MarketSessionException:
-                pass
+            except MarketSessionException as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to validate tokens transfer")
+        elif choice == "9":
+            try:
+                # Close market session (no more bids):
+                market.list_last_session()
+            except NoMarketSessionException as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to list session.")
+        elif choice == "10":
+            try:
+                # Close market session (no more bids):
+                session_id = int(input("Session ID: "))
+                new_status = input("New session status [options: staged,open,closed,running,finished]: ")
+                market.set_session_status(session_id, new_status)
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to list session.")
         elif choice == "\\":
             return
         elif choice == "0":

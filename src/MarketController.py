@@ -139,6 +139,32 @@ class MarketController:
         logger.info("")
         return bids
 
+    def list_last_session(self):
+        """
+        Request buyers bids for last 'open' session
+
+        :return:
+        """
+        # Check open session:
+        session = self.api.list_last_session()
+        logger.info("Last session available:")
+        logger.info(json.dumps(session, indent=2))
+        logger.info("")
+        return session
+
+    def set_session_status(self, session_id, new_status):
+        """
+        Request buyers bids for last 'open' session
+
+        :return:
+        """
+        status = self.api.update_market_session(
+            session_id=session_id,
+            status=new_status
+        )
+        logger.info(json.dumps(status, indent=2))
+        logger.info("")
+
     def approve_buyers_bids(self):
         """
         Approve buyers bids for current session
@@ -387,57 +413,6 @@ class MarketController:
             except WalletTransferOutException:
                 logger.error("Failed to register tokens transfer out action.")
                 continue
-
-        # Transfer tokens out:
-        # 1. Request user address (if non-existent, skips user)
-        # 2. Transfer tokens to user & save node response:
-        # 3. Validate transfer with Tangle Lookup:
-        # 4. POST request to update users balance in database tables
-        # for b in balance_list:
-        #     user_id = b["user"]
-        #     balance_iota = int(b["balance"])
-        #     wallet = WalletController()
-        #     market_balance = wallet.get_balance()
-        #     print(market_balance)
-        #     try:
-        #         address = self.api.get_user_wallet_address(user_id=user_id)
-        #     except UserWalletException:
-        #         logger.exception(f"Failed to get user {user_id} address.")
-        #         continue
-        #
-        #     try:
-        #         node_response = self.wallet.transfer_tokens(
-        #             amount=balance_iota,
-        #             address=address
-        #         )
-        #         tangle_msg_id = node_response["id"]
-        #     except Exception:
-        #         logger.exception(f"Failed to transfer_tokens to {user_id}.")
-        #         continue
-        #
-        #     try:
-        #         sleep(2)  # sleep a bit - let it solidify in tangle:
-        #         self.tangle.validate_tangle_message(
-        #             message_id=tangle_msg_id,
-        #             expected_amount=balance_iota,
-        #             output_address=address,
-        #         )
-        #     except Exception:
-        #         logger.exception(f"Failed to validate tangle_msg_id {tangle_msg_id}.")
-        #         continue
-        #
-        #     try:
-        #         self.api.post_transfer_out(
-        #             user_id=user_id,
-        #             amount=balance_iota,
-        #             tangle_msg_id=tangle_msg_id,
-        #             user_wallet_address=address
-        #         )
-        #     except WalletTransferOutException:
-        #         logger.exception(f"Failed to register tokens transfer
-        #         out action.")
-        #         continue
-        #     i += 1
 
     def validate_tokens_transfer(self):
         """
