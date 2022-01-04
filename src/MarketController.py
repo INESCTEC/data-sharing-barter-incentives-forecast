@@ -364,7 +364,7 @@ class MarketController:
             _last_bid_id = max(bid_id_list) + 1
             _n = 5  # number of extra resources/users/bids
             extra_resources = [x for x in range(_last_res, _last_res + _n)]
-            extra_users = [x for x in range(_last_res, _last_res + _n)]
+            extra_users = [x for x in range(_last_user, _last_user + _n)]
             extra_bid_ids = [x for x in range(_last_bid_id, _last_bid_id + _n)]
 
             zip_gen = zip(extra_resources, extra_users, extra_bid_ids)
