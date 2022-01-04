@@ -1,5 +1,4 @@
 import pandas as pd
-import datetime as dt
 
 from time import time
 from loguru import logger
@@ -471,6 +470,7 @@ class MarketClass:
             self.mkt_sess.set_seller_result(cls)
         logger.info("Saving session results ... Ok!")
 
+    def validate_session_results(self, raise_exception=True):
         # Confirm if there are no errors in market session results:
         fee = self.mkt_sess.total_market_fee
         payments = [v["has_to_pay"] for k, v in self.mkt_sess.buyers_results.items()]
@@ -488,7 +488,7 @@ class MarketClass:
         logger.debug(f"Validation: {sum(payments)} - {fee} - {sum(revenues)} = {result}")
         is_valid = round(result, 9) == 0.0
         logger.info(f"Valid Session: {is_valid}")
-        if not is_valid:
+        if (not is_valid) and raise_exception:
             raise ValueError("Payments - Fee - Revenues != 0. Invalid session.")
 
     def payment_and_revenue_per_user(self):
