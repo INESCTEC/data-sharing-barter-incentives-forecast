@@ -1,3 +1,4 @@
+from psycopg2.errors import UniqueViolation, ForeignKeyViolation
 import pandas as pd
 import datetime as dt
 
@@ -86,8 +87,12 @@ def upload_forecasts(market_session_id,
         db.insert_dataframe(df=forecasts, table=table_name)
         logger.debug(f"Inserting agent {user_id} forecasts ... Ok!")
         return True
+    except (UniqueViolation, ForeignKeyViolation) as ex:
+        msg = f"Failed to insert agent {user_id} forecasts"
+        logger.error(f"{msg} - {ex}")
     except Exception:
-        logger.exception(f"Failed to insert agent {user_id} forecasts")
+        msg = f"Unexpected error while inserting agent {user_id} forecasts"
+        logger.exception(msg)
         return False
 
 
