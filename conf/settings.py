@@ -20,6 +20,7 @@ IOTA_NODE_URL = os.environ['IOTA_NODE_URL']
 RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')
 MARKET_EMAIL = os.environ['MARKET_EMAIL']
 MARKET_PASSWORD = os.environ['MARKET_PASSWORD']
+N_JOBS = int(os.environ["N_JOBS"])
 
 # Database configs:
 DATABASES = {

@@ -280,7 +280,7 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=-1)
+        mc = MarketClass(n_jobs=settings.N_JOBS)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
@@ -410,7 +410,7 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=-1)
+        mc = MarketClass(n_jobs=settings.N_JOBS)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
