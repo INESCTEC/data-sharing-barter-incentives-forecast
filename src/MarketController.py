@@ -379,9 +379,9 @@ class MarketController:
         # Market balance:
         balance = self.wallet.get_balance()
         balance = balance["available"]
-        print(f"Current balance (market wallet): {balance / 1000000}Mi")
-        print(f"Total to transfer: {total_transfer / 1000000}Mi")
-        print(f"Expected remaining: {(balance - total_transfer) / 1000000}Mi")
+        logger.info(f"Current balance (market wallet): {balance / 1000000}Mi")
+        logger.info(f"Total to transfer: {total_transfer / 1000000}Mi")
+        logger.info(f"Expected remaining: {(balance - total_transfer) / 1000000}Mi")
 
         try:
             # Create multi-transfer operations:

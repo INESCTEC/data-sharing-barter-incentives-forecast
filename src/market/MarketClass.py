@@ -296,9 +296,9 @@ class MarketClass:
         test_features = features_[launch_time_:]
         return train_features, train_targets, test_features
 
-    def __calculate_payment_and_forecast(self,
-                                         buyer_cls,
-                                         market_x_full: pd.DataFrame):
+    def calculate_payment_and_forecast(self,
+                                       buyer_cls,
+                                       market_x_full: pd.DataFrame):
 
         # -- Load Buyer data
         logger.info(f"Processing buyer {buyer_cls.resource_id} bid ...")
@@ -537,7 +537,7 @@ class MarketClass:
         # -- 3. Process payment & forecasts for each buyer resource
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(
-                self.__calculate_payment_and_forecast
+                self.calculate_payment_and_forecast
             )(buyer_cls, market_x_full)
             for buyer_cls in self.buyers_data.values()
         )
