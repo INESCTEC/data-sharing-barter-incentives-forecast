@@ -44,7 +44,9 @@ def calc_buyer_payment(
 
     noisy_features, gain = f(bid_price)
     xaxis = np.arange(b_min, bid_price + epsilon, epsilon)
-    if bid_price == b_min:
+    if bid_price <= b_min:
+        # todo: antes estava == nesta condicao. Nao faz mais sentido ser <= ?
+        #  atualizei por agora para cobrir todos casos em q bid_price < b_min
         payment = gain * bid_price
     elif len(xaxis) == 1:
         payment = max(0, gain * bid_price)
