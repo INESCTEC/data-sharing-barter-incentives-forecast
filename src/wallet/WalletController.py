@@ -10,7 +10,7 @@ from .exception.WalletException import InsufficientFundsException
 
 class WalletController:
 
-    local_pow = False
+    local_pow = True
     alias = settings.WALLET_NAME
 
     def __init__(self):
