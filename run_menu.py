@@ -1,6 +1,5 @@
 import os
 
-from pprint import pprint
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -194,7 +193,10 @@ def market_menu():
         elif choice == "5":
             try:
                 # Run market session:
-                market.run_market_session()
+                if settings.RUN_REAL_MARKET:
+                    market.run_market_session()
+                else:
+                    market.run_fake_market_session()
             except NoMarketBuyersExceptions:
                 logger.error("Insuficient market bids (buyers) to create a new session.")
             except BaseException:

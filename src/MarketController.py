@@ -245,10 +245,10 @@ class MarketController:
         # #################################
         # Fetch session info:
         session_info = get_session_data(self.api)
-        session_data = session_info[0]
-        bids_per_resource = session_info[1]
-        users_resources = session_info[2]
-        price_weights = session_info[3]
+        session_data = session_info["session_data"]
+        bids_per_resource = session_info["bids_per_resource"]
+        users_resources = session_info["users_resources"]
+        price_weights = session_info["price_weights"]
 
         # ###################################################
         # Check if there are sufficient bids to run market
@@ -296,6 +296,144 @@ class MarketController:
         # -- Run market session:
         mc.define_payments_and_forecasts()
         mc.define_sellers_revenue()
+        mc.save_session_results()
+        mc.validate_session_results(raise_exception=True)
+        # -- Display session results
+        mc.show_session_results()
+        # -- Process payments:
+        mc.process_payments(api_controller=self.api)
+        # -- Update market price for next session:
+        mc.update_market_price()
+        # -- End session:
+        mc.end_session(api_controller=self.api)
+        # -- Open Next session:
+        mc.open_next_session(api_controller=self.api)
+        # -- Display session results
+        mc.show_session_results()
+        return True
+
+    def run_fake_market_session(self):
+        """
+        Run last 'closed' market session. Session state is updated to
+        'running' during execution and to 'finished' once it is complete.
+
+        :return:
+        """
+        from copy import deepcopy
+        launch_time = dt.datetime.utcnow()
+        launch_time = pd.to_datetime(launch_time).tz_localize("UTC")
+        launch_time = launch_time.to_pydatetime()
+
+        # ################################
+        # Fetch session info
+        # #################################
+        # Fetch session info:
+        session_info = get_session_data(self.api)
+        session_data = session_info["session_data"]
+        bids_per_resource = session_info["bids_per_resource"]
+        users_resources = session_info["users_resources"]
+        price_weights = session_info["price_weights"]
+
+        # ###################################################
+        # Check if there are sufficient bids to run market
+        # ####################################################
+        if len(bids_per_resource) == 0:
+            close_no_bids_session(
+                api_controller=self.api,
+                curr_session_data=session_data,
+                curr_price_weights=price_weights
+            )
+            logger.error("No buyer bids available. "
+                         "Finishing session & creating new one.")
+            return False
+        elif len(bids_per_resource) > 1:
+            logger.error("You cannot have more than 1 bid while on "
+                         "'fake' market mode.")
+            return False
+        else:
+            if len(users_resources) > 1:
+                logger.error("You cannot have more than 1 resource registered "
+                             "in the market, in this 'fake' market mode.")
+                return False
+
+            resources_w_bids = set([x["resource"] for x in bids_per_resource])
+            users_w_bids = set([x["user"] for x in bids_per_resource])
+            bid_id_list = set([x["id"] for x in bids_per_resource])
+            _last_res = max(resources_w_bids) + 1
+            _last_user = max(users_w_bids) + 1
+            _last_bid_id = max(bid_id_list) + 1
+            _n = 5  # number of extra resources/users/bids
+            extra_resources = [x for x in range(_last_res, _last_res + _n)]
+            extra_users = [x for x in range(_last_res, _last_res + _n)]
+            extra_bid_ids = [x for x in range(_last_bid_id, _last_bid_id + _n)]
+
+            zip_gen = zip(extra_resources, extra_users, extra_bid_ids)
+            for (res_id, user_id, bid_id) in zip_gen:
+                bids_per_resource.append(
+                    {
+                        'id': bid_id,
+                        'tangle_msg_id': 'xaxxxxsaxacas',
+                        'max_payment': session_data["market_price"],
+                        'bid_price': session_data["market_price"],
+                        'gain_func': 'mse',
+                        'confirmed': True,
+                        'registered_at': '2022-01-04T10:32:15.376562Z',
+                        'has_forecasts': True,
+                        'user': user_id,
+                        'resource': res_id,
+                        'market_session': session_data["id"]
+                    }
+                )
+                users_resources.append(
+                    {'id': res_id,
+                     'name': 'resource-1',
+                     'type': 'measurements',
+                     'to_forecast': True,
+                     'registered_at': '2022-01-04T10:31:32.785753Z',
+                     'user': user_id}
+                )
+
+        # ###################################
+        # Convert units from IOTA to MIOTA:
+        # ####################################
+        session_data = convert_session_data_to_mi(data=session_data)
+        bids_per_resource = convert_buyers_bids_to_mi(bids=bids_per_resource)
+
+        # ################################
+        # Query agents measurements:
+        # ################################
+        measurements = get_measurements_data_mock(
+            users_resources=users_resources,
+            market_launch_time=launch_time
+        )
+
+        # ################################
+        # Create & Run Market Session
+        # ################################
+        mc = MarketClass(n_jobs=1)
+        mc.init_session(
+            session_data=session_data,
+            price_weights=price_weights,
+            launch_time=launch_time
+        )
+        mc.show_session_details()
+        # mc.start_session(api_controller=self.api)
+        # -- Load resources bids:
+        mc.load_users_resources(users_resources=users_resources)
+        mc.load_resources_bids(bids=bids_per_resource)
+        # -- Load resources measurements data:
+        mc.load_resources_measurements(measurements=measurements)
+        # -- Run market session:
+        mc.define_payments_and_forecasts()
+        mc.define_sellers_revenue()
+
+        # Remove fictitious agents / resources
+        for res in extra_resources:
+            del mc.sellers_data[res]
+            del mc.buyers_data[res]
+            del mc.mkt_sess.market_fee_per_resource[res]
+        # Reset market fees (to one resource only)
+        mc.mkt_sess.total_market_fee = sum(mc.mkt_sess.market_fee_per_resource.values())
         mc.save_session_results()
         # -- Display session results
         mc.show_session_results()
