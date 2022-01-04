@@ -17,6 +17,7 @@ IOTA_FAUCET_URL = os.environ['IOTA_FAUCET_URL']
 IOTA_NODE_URL = os.environ['IOTA_NODE_URL']
 
 # Market Configs:
+RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')
 MARKET_EMAIL = os.environ['MARKET_EMAIL']
 MARKET_PASSWORD = os.environ['MARKET_PASSWORD']
 

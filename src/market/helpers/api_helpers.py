@@ -21,11 +21,16 @@ def get_session_data(api_controller):
         confirmed=True,
     )
     # -- Session active resources:
-    user_resources = api_controller.list_user_resources()
+    users_resources = api_controller.list_user_resources()
     # -- Session weights:
     price_weights = api_controller.list_session_weights(active_session_id)
     logger.info("Fetching session data ... Ok!")
-    return session_data, bids_per_resource, user_resources, price_weights
+    return {
+        "session_data": session_data,
+        "bids_per_resource": bids_per_resource,
+        "users_resources": users_resources,
+        "price_weights": price_weights
+    }
 
 
 # #############################################################################
