@@ -36,9 +36,9 @@ class TangleController:
     def __is_msg_confirmed(message_metadata):
         solid = message_metadata["is_solid"]
         try:
-            included_in_ledger = message_metadata["ledger_inclusion_state"] \
-                                     .get("state", "not_included") \
-                                     .lower() == "included"
+            included_in_ledger = message_metadata["ledger_inclusion_state"]\
+                                     .get("state", "not_included")\
+                                     .lower() == "included"  # noqa
         except AttributeError:
             included_in_ledger = False
 

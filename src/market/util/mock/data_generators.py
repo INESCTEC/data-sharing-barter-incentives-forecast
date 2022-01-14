@@ -60,8 +60,6 @@ def generate_max_payment():
     return np.random.uniform(20, 100)
 
 
-
-
 class MeasurementsGenerator:
     def __init__(self):
         self.mock_dataset = pd.DataFrame()
