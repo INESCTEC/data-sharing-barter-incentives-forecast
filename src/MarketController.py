@@ -280,7 +280,7 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=settings.N_JOBS)
+        mc = MarketClass(n_jobs=settings.N_JOBS, enable_db_uploads=True)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
@@ -410,14 +410,14 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=settings.N_JOBS)
+        mc = MarketClass(n_jobs=settings.N_JOBS, enable_db_uploads=True)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
             launch_time=launch_time
         )
         mc.show_session_details()
-        # mc.start_session(api_controller=self.api)
+        mc.start_session(api_controller=self.api)
         # -- Load resources bids:
         mc.load_users_resources(users_resources=users_resources)
         mc.load_resources_bids(bids=bids_per_resource)

@@ -11,12 +11,11 @@ __ROOT_PATH__ = os.path.dirname(__file__)
 class Config:
 
     def __init__(self,
-                 measurement_data_path,
+                 dataset_path,
+                 bids_scenario,
                  nr_sessions,
                  first_lt_utc,
                  session_freq,
-                 n_buyers,
-                 n_sellers,
                  price_up_data_path=None,
                  price_down_data_path=None,
                  price_spot_data_path=None,
@@ -25,18 +24,16 @@ class Config:
         self.nr_sessions = nr_sessions
         self.first_lt_utc = first_lt_utc
         self.session_freq = session_freq
-        self.MEASUREMENT_DATA_PATH = measurement_data_path
+        self.DATASET_PATH = dataset_path
+        self.BIDS_SCENARIO = bids_scenario
         self.PRICE_UP_DATA_PATH = price_up_data_path
         self.PRICE_DOWN_DATA_PATH = price_down_data_path
         self.PRICE_SPOT_DATA_PATH = price_spot_data_path
         self.AGENTS_AREA_MAP_PATH = agents_area_map_path
-        self.N_BUYERS = n_buyers
-        self.N_SELLERS = n_sellers
         self.__create_reports_dir()
         self.__create_logger()
         self.__create_sessions_list()
         self.__create_sessions_reports()
-        self.__create_agents()
 
     def __create_reports_dir(self):
         current_time = dt.datetime.utcnow().strftime("%Y%m%d%H%M%S")
@@ -64,12 +61,6 @@ class Config:
             ),
             freq="H"
         )
-
-    def __create_agents(self):
-        self.BUYER_AGENTS = [x for x in range(self.N_BUYERS)]
-        self.SELLER_AGENTS = [x for x in range(self.N_BUYERS,
-                                               self.N_BUYERS + self.N_SELLERS)]
-        self.AGENTS_LIST = self.BUYER_AGENTS + self.SELLER_AGENTS
 
     def __create_sessions_reports(self):
         self.RESULTS = {}

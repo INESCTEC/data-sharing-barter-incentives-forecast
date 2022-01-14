@@ -1,3 +1,6 @@
+*.csv
+examples/simulator_no_api/data/datasets/
+
 .idea/
 .vscode/
 examples/files
