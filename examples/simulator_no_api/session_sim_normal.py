@@ -1,4 +1,5 @@
 # flake8: noqa
+import gc
 import datetime as dt
 
 from loguru import logger
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     DATASET_PATH = cfg.DATASET_PATH
 
     # -- Run market sessions:
-    for session_id, market_lt in enumerate(cfg.SESSIONS_LIST):
+    for session_id, market_lt in enumerate(cfg.SESSIONS_LIST[1:]):
         logger.info("/" * 79)
         logger.info("\\" * 79)
         market_lt = market_lt.to_pydatetime()
@@ -49,7 +50,7 @@ if __name__ == '__main__':
         # #########################################
         sg = SessionGenerator()
         if session_id > 0:
-            sg.set_market_price(market_price=CURRENT_MARKET_PRICE)
+            sg.set_market_price(market_price=CURRENT_MARKET_PRICE * 1e6)
             sg.set_price_weights(price_weights=CURRENT_PRICE_WEIGHTS)
 
         # Create session:
@@ -125,3 +126,9 @@ if __name__ == '__main__':
         logger.info(f"Market price: {CURRENT_MARKET_PRICE}")
         logger.info(f"Price weights: {CURRENT_PRICE_WEIGHTS}")
         logger.info("<" * 70)
+
+        del mc
+        del ag
+        del sg
+        gc.collect()
+
