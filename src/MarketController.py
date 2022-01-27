@@ -128,12 +128,12 @@ class MarketController:
         :return:
         """
         # Check open session:
-        open_session = self.api.list_last_session(status='open')
-        logger.info("Current 'OPEN' session:")
-        logger.info(open_session)
+        latest_session = self.api.list_last_session()
+        logger.info("Latest session:")
+        logger.info(latest_session)
         logger.info("")
         # List bids for each session:
-        bids = self.api.list_session_bids(session_id=open_session["id"])
+        bids = self.api.list_session_bids(session_id=latest_session["id"])
         logger.info(f"There are {len(bids)} for this session.")
         logger.info(json.dumps(bids, indent=2))
         logger.info("")
@@ -426,17 +426,21 @@ class MarketController:
         # -- Run market session:
         mc.define_payments_and_forecasts()
         mc.define_sellers_revenue()
+        mc.save_session_results()
+        # -- Display session results
+        mc.show_session_results()
 
         # Remove fictitious agents / resources
         for res in extra_resources:
             del mc.sellers_data[res]
             del mc.buyers_data[res]
             del mc.mkt_sess.market_fee_per_resource[res]
+            del mc.mkt_sess.buyers_results[res]
+            del mc.mkt_sess.sellers_results[res]
+
         # Reset market fees (to one resource only)
         mc.mkt_sess.total_market_fee = sum(mc.mkt_sess.market_fee_per_resource.values())
-        mc.save_session_results()
-        # -- Display session results
-        mc.show_session_results()
+
         # -- Process payments:
         mc.process_payments(api_controller=self.api)
         # -- Update market price for next session:
