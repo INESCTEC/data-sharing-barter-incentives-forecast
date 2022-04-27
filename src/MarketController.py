@@ -192,6 +192,11 @@ class MarketController:
 
         for b in bids:
             logger.info(f"Validating bid {b['id']} - {b['tangle_msg_id']}")
+
+            if b["tangle_msg_id"] is None:
+                logger.error(f"Bid {b['id']} does not have a tangle_msg_id.")
+                continue
+
             try:
                 valid_in_tangle = self.tangle.validate_message(
                     output_type="single",
