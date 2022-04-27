@@ -143,7 +143,7 @@ def market_menu():
         _clear_console()
         print("     Market OPS MENU")
         print("1  - Open market session")
-        print("2  - Get bids for current market session")
+        print("2  - Get bids for latest market session")
         print("3  - Close market session")
         print("4  - Approve market bids")
         print("5  - Run market session")

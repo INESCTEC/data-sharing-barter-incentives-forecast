@@ -46,7 +46,7 @@ class MarketClass:
     MEASUREMENTS_TABLE = "market_forecasts"
     BIDS_TABLE = "market_session_bid"
 
-    def __init__(self, n_jobs=-1):
+    def __init__(self, n_jobs=-1, enable_db_uploads=False):
         self.users_data = {}
         self.users_list = []
         self.users_resources = []
@@ -57,9 +57,11 @@ class MarketClass:
         self.finish_time = None
         self.buyer_outputs = []
         self.n_jobs = n_jobs
+        self.db_uploads = enable_db_uploads
 
     def activate_debug_mode(self):
         self.DEBUG = True
+        self.db_uploads = False
         logger.remove()
 
     def init_session(self, session_data, price_weights, launch_time):
@@ -391,7 +393,7 @@ class MarketClass:
             test_features_df=test_features,
         )
 
-        if not self.DEBUG:
+        if self.db_uploads:
             inserted = upload_forecasts(
                 market_session_id=self.mkt_sess.session_id,
                 request=self.launch_time,
