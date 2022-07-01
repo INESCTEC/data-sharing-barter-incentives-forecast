@@ -258,7 +258,7 @@ class MarketController:
         # ###################################################
         # Check if there are sufficient bids to run market
         # ####################################################
-        if len(bids_per_resource) == 0:
+        if len(bids_per_resource) <= 1:
             close_no_bids_session(
                 api_controller=self.api,
                 curr_session_data=session_data,
