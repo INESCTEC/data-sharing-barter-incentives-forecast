@@ -523,6 +523,13 @@ class MarketController:
                 logger.exception(f"Failed to get user {user_id} address.")
                 continue
 
+        if len(transfer_list) == 0:
+            log_msg_ = "Balance transfer-out list is empty."
+            raise WalletTransferOutException(
+                message=log_msg_,
+                errors={"message": log_msg_}
+            )
+
         # Market balance:
         balance = self.wallet.get_balance()
         balance = balance["available"]
