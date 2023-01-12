@@ -351,52 +351,52 @@ class MarketController:
             logger.error("No buyer bids available. "
                          "Finishing session & creating new one.")
             return False
-        elif len(bids_per_resource) > 1:
-            logger.error("You cannot have more than 1 bid while on "
-                         "'fake' market mode.")
-            return False
-        else:
-            if len(users_resources) > 1:
-                logger.error("You cannot have more than 1 resource registered "
-                             "in the market, in this 'fake' market mode.")
-                return False
+        # elif len(bids_per_resource) > 1:
+        #     logger.error("You cannot have more than 1 bid while on "
+        #                  "'fake' market mode.")
+        #     return False
+        # else:
+        #     if len(users_resources) > 1:
+        #         logger.error("You cannot have more than 1 resource registered "
+        #                      "in the market, in this 'fake' market mode.")
+        #         return False
 
-            resources_w_bids = set([x["resource"] for x in bids_per_resource])
-            users_w_bids = set([x["user"] for x in bids_per_resource])
-            bid_id_list = set([x["id"] for x in bids_per_resource])
-            _last_res = max(resources_w_bids) + 1
-            _last_user = max(users_w_bids) + 1
-            _last_bid_id = max(bid_id_list) + 1
-            _n = 5  # number of extra resources/users/bids
-            extra_resources = [x for x in range(_last_res, _last_res + _n)]
-            extra_users = [x for x in range(_last_user, _last_user + _n)]
-            extra_bid_ids = [x for x in range(_last_bid_id, _last_bid_id + _n)]
+        resources_w_bids = set([x["resource"] for x in bids_per_resource])
+        users_w_bids = set([x["user"] for x in bids_per_resource])
+        bid_id_list = set([x["id"] for x in bids_per_resource])
+        _last_res = max(resources_w_bids) + 1
+        _last_user = max(users_w_bids) + 1
+        _last_bid_id = max(bid_id_list) + 1
+        _n = 5  # number of extra resources/users/bids
+        extra_resources = [x for x in range(_last_res, _last_res + _n)]
+        extra_users = [x for x in range(_last_user, _last_user + _n)]
+        extra_bid_ids = [x for x in range(_last_bid_id, _last_bid_id + _n)]
 
-            zip_gen = zip(extra_resources, extra_users, extra_bid_ids)
-            for (res_id, user_id, bid_id) in zip_gen:
-                bids_per_resource.append(
-                    {
-                        'id': bid_id,
-                        'tangle_msg_id': 'xaxxxxsaxacas',
-                        'max_payment': session_data["market_price"],
-                        'bid_price': session_data["market_price"],
-                        'gain_func': 'mse',
-                        'confirmed': True,
-                        'registered_at': '2022-01-04T10:32:15.376562Z',
-                        'has_forecasts': True,
-                        'user': user_id,
-                        'resource': res_id,
-                        'market_session': session_data["id"]
-                    }
-                )
-                users_resources.append(
-                    {'id': res_id,
-                     'name': 'resource-1',
-                     'type': 'measurements',
-                     'to_forecast': True,
-                     'registered_at': '2022-01-04T10:31:32.785753Z',
-                     'user': user_id}
-                )
+        zip_gen = zip(extra_resources, extra_users, extra_bid_ids)
+        for (res_id, user_id, bid_id) in zip_gen:
+            bids_per_resource.append(
+                {
+                    'id': bid_id,
+                    'tangle_msg_id': 'xaxxxxsaxacas',
+                    'max_payment': session_data["market_price"],
+                    'bid_price': session_data["market_price"],
+                    'gain_func': 'mse',
+                    'confirmed': True,
+                    'registered_at': '2022-01-04T10:32:15.376562Z',
+                    'has_forecasts': True,
+                    'user': user_id,
+                    'resource': res_id,
+                    'market_session': session_data["id"]
+                }
+            )
+            users_resources.append(
+                {'id': res_id,
+                 'name': 'resource-1',
+                 'type': 'measurements',
+                 'to_forecast': True,
+                 'registered_at': '2022-01-04T10:31:32.785753Z',
+                 'user': user_id}
+            )
 
         # ###################################
         # Convert units from IOTA to MIOTA:
