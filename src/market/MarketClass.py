@@ -172,6 +172,9 @@ class MarketClass:
         for user_id in self.users_list:
             self.users_data[user_id] = UserClass(user_id=user_id)
 
+        logger.debug(f"Loaded users data:"
+                     f"\nusers_list{self.users_list}")
+
     def load_resources_measurements(self, measurements: dict):
         if not isinstance(measurements, dict):
             raise TypeError("Error! measurements arg. must be a dict")
