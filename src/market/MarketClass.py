@@ -157,6 +157,8 @@ class MarketClass:
 
         # Init Seller class with each seller identification:
         self.users_resources = users_resources
+        logger.debug(f"\nUsers resources (to load):"
+                     f"\n{users_resources}")
         for resource_data in self.users_resources:
             user_id = resource_data["user"]
             resource_id = resource_data["id"]
@@ -172,7 +174,7 @@ class MarketClass:
         for user_id in self.users_list:
             self.users_data[user_id] = UserClass(user_id=user_id)
 
-        logger.debug(f"Loaded users data:"
+        logger.debug(f"\nLoaded users data:"
                      f"\nusers_list{self.users_list}")
 
     def load_resources_measurements(self, measurements: dict):

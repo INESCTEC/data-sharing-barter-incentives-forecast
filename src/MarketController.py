@@ -254,6 +254,8 @@ class MarketController:
         bids_per_resource = session_info["bids_per_resource"]
         users_resources = session_info["users_resources"]
         price_weights = session_info["price_weights"]
+        logger.debug(f"\nSession info:"
+                     f"\n{json.dumps(users_resources, indent=3)}")
 
         # ###################################################
         # Check if there are sufficient bids to run market
