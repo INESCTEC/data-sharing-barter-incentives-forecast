@@ -336,6 +336,8 @@ class MarketController:
         # #################################
         # Fetch session info:
         session_info = get_session_data(self.api)
+        logger.debug(f"\nSession data:"
+                     f"\n{json.dumps(session_info, indent=3)}")
         session_data = session_info["session_data"]
         bids_per_resource = session_info["bids_per_resource"]
         users_resources = session_info["users_resources"]
