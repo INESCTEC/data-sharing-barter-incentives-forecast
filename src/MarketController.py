@@ -340,6 +340,8 @@ class MarketController:
         bids_per_resource = session_info["bids_per_resource"]
         users_resources = session_info["users_resources"]
         price_weights = session_info["price_weights"]
+        logger.debug(f"\nUser resources (before fake users):"
+                     f"\n{json.dumps(users_resources, indent=3)}")
 
         # ###################################################
         # Check if there are sufficient bids to run market
@@ -399,6 +401,9 @@ class MarketController:
                  'registered_at': '2022-01-04T10:31:32.785753Z',
                  'user': user_id}
             )
+
+        logger.debug(f"\nUser resources (after fake users):"
+                     f"\n{json.dumps(users_resources, indent=3)}")
 
         # ###################################
         # Convert units from IOTA to MIOTA:
