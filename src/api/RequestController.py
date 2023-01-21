@@ -45,7 +45,7 @@ class RequestController:
                 url += "/"
             for p in url_params:
                 url += f"{p}"
-        logger.debug(f"[{endpoint.http_method}]Request to: {url}")
+        logger.debug(f"[{endpoint.http_method}]Request to: {url} -- QP {params}")
 
         data = None if data is None else json.dumps(data)
         headers_ = self.headers
