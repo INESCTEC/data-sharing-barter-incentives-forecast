@@ -44,7 +44,9 @@ def calc_buyer_payment(
 
     noisy_features, gain = f(bid_price)
     xaxis = np.arange(b_min, bid_price + epsilon, epsilon)
-    if bid_price == b_min:
+    if bid_price <= b_min:
+        # todo: antes estava == nesta condicao. Nao faz mais sentido ser <= ?
+        #  atualizei por agora para cobrir todos casos em q bid_price < b_min
         payment = gain * bid_price
     elif len(xaxis) == 1:
         payment = max(0, gain * bid_price)
@@ -62,18 +64,18 @@ def calc_sellers_revenue(
         noisy_features,
         targets,
         gain_func,
-        buyer_id: str,
-        buyer_payment: float,
+        buyer_resource_id: str,
+        buyer_resource_payment: float,
         buyer_market_fee: float,
         sellers_id_list: list,
-        sellers_features_names,
+        sellers_features_name,
         K,
         lambd,
         n_hours: int):
     logger.debug("Distributing revenue ...")
     # Set payment to distribute by sellers
     # Equal to actual payment - market fee
-    payment = buyer_payment - buyer_market_fee
+    payment = buyer_resource_payment - buyer_market_fee
 
     # -- Calculate percentage revenue (% of buyer payment)
     pct_revenue_split = shapley_robust(
@@ -89,26 +91,26 @@ def calc_sellers_revenue(
     # todo: assess and solve possible precision problems here
     if round(sum(pct_revenue_split), 9) != 1.0:
         raise Exception(f"Sum of revenue split different of zero, "
-                        f"for buyer {buyer_id}."
+                        f"for buyer resource ID {buyer_resource_id}."
                         f"\nSum value: {sum(pct_revenue_split)}"
                         f"\nPct values: {str(pct_revenue_split)}"
                         )
     # -- Check valid features for revenue:
     # Note: These are all the features EXCEPT current agent features
     # (remember - the current buyer might also be a seller)
-    _features = [idx for idx, x in enumerate(sellers_features_names)
+    _features = [idx for idx, x in enumerate(sellers_features_name)
                  if (x.startswith("seller"))
-                 and (x.split('__')[1] != buyer_id)]
+                 and (x.split('__')[1] != buyer_resource_id)]
     # -- assign revenue to sellers:
     revenue_split = dict([
         (seller_id, {"pct_revenue": 0, "abs_revenue": 0})
         for seller_id in sellers_id_list
     ])
     for j, idx in enumerate(_features):
-        feat = sellers_features_names[idx]
+        feat = sellers_features_name[idx]
         seller_id = int(feat.split('__')[1])
         logger.debug(f"seller {seller_id} feature {feat} has to receive "
-                     f"{pct_revenue_split[j] * buyer_payment}")
+                     f"{pct_revenue_split[j] * buyer_resource_payment}")
         revenue_split[seller_id]["pct_revenue"] += pct_revenue_split[j]
         revenue_split[seller_id]["abs_revenue"] += pct_revenue_split[j] * payment  # noqa
     return revenue_split
@@ -125,7 +127,7 @@ def square_rooted(x):
 def cos_similarity(x, y):
     numerator = sum(a * b for a, b in zip(x, y))
     denominator = square_rooted(x) * square_rooted(y)
-    return np.round(np.abs(numerator) / np.float(denominator), 3)
+    return np.round(np.abs(numerator) / float(denominator), 3)
 
 
 # 7. PAYMENT DIVISION - PAPER'S ALGORITHM 1
@@ -205,17 +207,20 @@ def shapley_aprox_parallel(Y, X, K, n_hours, gain_func):
 # @timeit
 def shapley_robust(Y, X, K, lambd, n_hours, gain_func):
     M = X.shape[1] - 1
-    phi_ = np.repeat(0.0, M)
-    phi = shapley_aprox(Y, X, K, n_hours, gain_func)
-    for m in np.arange(0, M):
-        s = 0
-        for k in np.arange(0, M):
-            if k != m:
-                s += cos_similarity(X[:, m], X[:, k])
-        phi_[m] = phi[m] * np.exp(-lambd * s)
-    if phi.sum() > 0:
-        phi = phi_ / phi_.sum()
-    return phi
+    if M == 1:
+        return 1
+    else:
+        phi_ = np.repeat(0.0, M)
+        phi = shapley_aprox(Y, X, K, n_hours, gain_func)
+        for m in np.arange(0, M):
+            s = 0
+            for k in np.arange(0, M):
+                if k != m:
+                    s += cos_similarity(X[:, m], X[:, k])
+            phi_[m] = phi[m] * np.exp(-lambd * s)
+        if phi.sum() > 0:
+            phi = phi_ / phi_.sum()
+        return phi
 
 
 # #############################################################################

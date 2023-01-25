@@ -28,17 +28,24 @@ class RequestController:
                 endpoint: Endpoint,
                 data=None,
                 params=None,
+                url_params=None,
                 auth_token=None) -> Response:
         """
         :param endpoint:
         :param data:
         :param params:
+        :param url_params:
         :param auth_token:
         :return:
         """
 
         url = self.remote_uri + endpoint.uri
-        logger.debug(f"[{endpoint.http_method}]Request to: {url}")
+        if url_params is not None:
+            if url[-1] != "/":
+                url += "/"
+            for p in url_params:
+                url += f"{p}"
+        logger.debug(f"[{endpoint.http_method}]Request to: {url} -- QP {params}")
 
         data = None if data is None else json.dumps(data)
         headers_ = self.headers

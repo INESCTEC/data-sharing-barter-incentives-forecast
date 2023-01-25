@@ -1,0 +1,28 @@
+RUN_REAL_MARKET=false
+
+# Market configs
+MARKET_EMAIL=market_email
+MARKET_PASSWORD=market_password
+N_JOBS=-1
+
+# Database configs:
+POSTGRES_HOST=db_host
+POSTGRES_DB=db_name
+POSTGRES_USER=db_user
+POSTGRES_PASSWORD=db_password
+POSTGRES_PORT=db_port
+
+# URI:
+RESTAPI_HOST=rest_api_host
+RESTAPI_PORT=rest_api_port
+N_REQUEST_RETRIES=n_request_retries
+
+# IOTA configs:
+IOTA_FAUCET_URL=https://faucet.chrysalis-devnet.iota.cafe/api/plugins/faucet/enqueue
+IOTA_NODE_URL=https://api.lb-1.h.chrysalis-devnet.iota.cafe/
+
+# Wallet Configs:
+MINIMUM_WITHDRAW_AMOUNT = 1000000
+STRONG_WALLET_KEY=strong_wallet_key
+WALLET_NAME = wallet_name
+STORAGE_PATH=files/

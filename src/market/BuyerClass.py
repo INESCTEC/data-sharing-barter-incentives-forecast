@@ -8,20 +8,23 @@ from .helpers.class_helpers import ValidatorClass
 @dataclass()
 class BuyerClass(ValidatorClass):
     market_bid_id: int = None           # Bid identifier
-    identifier: int = None              # Buyer identifier
-    gain_func: str = None               # Buyer gain function
-    initial_bid: np.float64 = None      # Buyer initial bid
-    max_payment: np.float64 = None      # Buyer max payment
-    final_bid: np.float64 = None        # Buyer final bid (adjusted by market)
-    y: pd.DataFrame = None              # Buyer measurements time-series
-    has_to_pay: np.float64 = np.float64(0.0)    # Buyer payment amount
-    gain: np.float64 = None             # Buyer forecast gain
-    forecasts: pd.DataFrame = None      # Buyer forecasts
+    resource_id: int = None             # Bid resource identifier
+    user_id: int = None                 # Bid user identifier
+    gain_func: str = None               # Bid gain function
+    initial_bid: np.float64 = None      # Bid initial bid_price
+    max_payment: np.float64 = None      # Bid max payment
+    final_bid: np.float64 = None        # Bid final bid (adjusted by market)
+    y: pd.DataFrame = None              # Bid resource measurements time-series
+    has_to_pay: np.float64 = np.float64(0.0)  # Payment amount to bid user
+    gain: np.float64 = None             # Resource id forecast estimated gain
+    forecasts: pd.DataFrame = None      # Resource id market forecasts
     payment_split = {}                  # Payment division per seller
 
     def validate_attributes(self):
-        if self.identifier is None:
-            raise ValueError("BuyerClass identifier not defined.")
+        if self.user_id is None:
+            raise ValueError("BuyerClass user_id not defined.")
+        if self.resource_id is None:
+            raise ValueError("BuyerClass resource_id not defined.")
         if self.gain_func is None:
             raise ValueError("BuyerClass gain_func not defined.")
         if self.initial_bid is None:
@@ -31,11 +34,13 @@ class BuyerClass(ValidatorClass):
         if self.market_bid_id is None:
             raise ValueError("BuyerClass market_bid_id not defined.")
         self.validate_attr_types()
+        return self
 
     @property
     def details(self):
         return {
-            "identifier": self.identifier,
+            "user_id": self.user_id,
+            "resource_id": self.resource_id,
             "gain_func": self.gain_func,
             "gain": self.gain,
             "initial_bid": self.initial_bid,

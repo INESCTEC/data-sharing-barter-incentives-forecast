@@ -27,7 +27,7 @@ class SessionClass(ValidatorClass):
     epsilon: np.float64 = None              # Interval in possible_p array
     status_list = ["open", "closed", "running", "finished"]
     total_market_fee = 0
-    market_fee_per_buyer = {}
+    market_fee_per_resource = {}
 
     def set_initial_conditions(self):
         # possible prices:
@@ -76,7 +76,7 @@ class SessionClass(ValidatorClass):
             "next_weights_p": str(self.next_weights_p),
             "prev_weights_p": str(self.prev_weights_p),
             "total_market_fee": self.total_market_fee,
-            "market_fee_per_buyer": self.market_fee_per_buyer,
+            "market_fee_per_resource": self.market_fee_per_resource,
         }
 
     def set_previous_price_weights(self, weights_p):
@@ -89,13 +89,13 @@ class SessionClass(ValidatorClass):
         self.next_market_price = np.float64(price)
 
     def set_buyer_result(self, buyer_cls):
-        self.buyers_results[buyer_cls.identifier] = buyer_cls.details
+        self.buyers_results[buyer_cls.resource_id] = buyer_cls.details
 
     def set_seller_result(self, seller_cls):
-        self.sellers_results[seller_cls.identifier] = seller_cls.details
+        self.sellers_results[seller_cls.resource_id] = seller_cls.details
 
-    def add_market_fee(self, buyer_id, value):
-        self.market_fee_per_buyer[buyer_id] = value
+    def add_market_fee(self, resource_id, value):
+        self.market_fee_per_resource[resource_id] = value
         self.total_market_fee += value
 
     def start_session(self):

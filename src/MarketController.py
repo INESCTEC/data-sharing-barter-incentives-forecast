@@ -11,8 +11,11 @@ from .wallet import WalletController, TangleController
 from .market import MarketClass
 from .market.helpers.api_helpers import (
     get_session_data,
-    get_measurements_data,
     close_no_bids_session
+)
+from .market.helpers.db_helpers import (
+    get_measurements_data,
+    get_measurements_data_mock,
 )
 from .market.helpers.units_helpers import (
     convert_session_data_to_mi,
@@ -20,6 +23,7 @@ from .market.helpers.units_helpers import (
 )
 
 from .api.exception.APIException import *
+from .market.exception.ControllerException import *
 from .wallet.exception.TangleException import *
 from .wallet.exception.WalletException import *
 
@@ -63,19 +67,31 @@ class MarketController:
 
             # Post session weights if the session was correctly open:
             self.api.post_session_weights(
-                session_id=session["market_session_id"],
+                session_id=session["id"],
                 weights_p=first_session_cfg.weights_p
             )
             logger.info("Creating first market session ... Ok!")
 
         # List last market 'staged' sessions:
         staged_session = self.api.list_last_session(status='staged')
+        logger.info("Current 'STAGED' session:")
         logger.info(staged_session)
         logger.info("")
 
+        # Do not allow opening a new market session unless all the market
+        # transfer out transactions (which return users balance to each user)
+        # are valid
+        pending_transfer_list = self.api.list_pending_transfer_out()
+        if len(pending_transfer_list) > 0:
+            raise PendingTransferOut(
+                message=f"Unable to open new session as "
+                        f"there are still {len(pending_transfer_list)} "
+                        f"unconfirmed market transfers from last session. "
+                        f"Please validate token transfers first.")
+
         # Change market session status from 'STAGED' to 'OPEN':
         self.api.update_market_session(
-            session_id=staged_session["market_session_id"],
+            session_id=staged_session["id"],
             status="open",
             open_ts=dt.datetime.utcnow()
         )
@@ -103,16 +119,14 @@ class MarketController:
         logger.info("")
         return response
 
-    def update_market_wallet_address(self, old_address, new_address):
+    def update_market_wallet_address(self, new_address):
         """
         Update current market wallet address
 
-        :param str old_address: Address to be updated
-        :param str new_address: Address to update to
+        :param str new_address: New address to replace current market address
         :return:
         """
         response = self.api.update_market_wallet_address(
-            old_address=old_address,
             new_address=new_address
         )
         logger.info(response)
@@ -126,17 +140,42 @@ class MarketController:
         :return:
         """
         # Check open session:
-        open_session = self.api.list_last_session(status='open')
-        logger.info(open_session)
+        latest_session = self.api.list_last_session()
+        logger.info("Latest session:")
+        logger.info(latest_session)
         logger.info("")
-
         # List bids for each session:
-        bids = self.api.list_session_bids(
-            session_id=open_session["market_session_id"]
-        )
-        logger.info(bids)
+        bids = self.api.list_session_bids(session_id=latest_session["id"])
+        logger.info(f"There are {len(bids)} for this session.")
+        logger.info(json.dumps(bids, indent=2))
         logger.info("")
         return bids
+
+    def list_last_session(self):
+        """
+        Request buyers bids for last 'open' session
+
+        :return:
+        """
+        # Check open session:
+        session = self.api.list_last_session()
+        logger.info("Last session available:")
+        logger.info(json.dumps(session, indent=2))
+        logger.info("")
+        return session
+
+    def set_session_status(self, session_id, new_status):
+        """
+        Request buyers bids for last 'open' session
+
+        :return:
+        """
+        status = self.api.update_market_session(
+            session_id=session_id,
+            status=new_status
+        )
+        logger.info(json.dumps(status, indent=2))
+        logger.info("")
 
     def approve_buyers_bids(self):
         """
@@ -145,22 +184,31 @@ class MarketController:
         :return:
         """
         # Check open session:
-        open_session = self.api.list_last_session(status='closed')
-        logger.info(open_session)
+        closed_session = self.api.list_last_session(status='closed')
+        logger.info("Current 'CLOSED' session:")
+        logger.info(closed_session)
         logger.info("")
 
         # List bids for each session:
         bids = self.api.list_session_bids(
-            session_id=open_session["market_session_id"],
+            session_id=closed_session["id"],
             confirmed=False,
         )
-        logger.info(bids)
+        logger.info(f"There are {len(bids)} 'UNCONFIRMED' bids for this "
+                    f"session.")
+        logger.info(json.dumps(bids, indent=2))
         logger.info("")
 
         # -- Get market wallet address:
         market_wallet_address = self.api.get_market_wallet_address()
 
         for b in bids:
+            logger.info(f"Validating bid {b['id']} - {b['tangle_msg_id']}")
+
+            if b["tangle_msg_id"] is None:
+                logger.error(f"Bid {b['id']} does not have a tangle_msg_id.")
+                continue
+
             try:
                 valid_in_tangle = self.tangle.validate_message(
                     output_type="single",
@@ -172,9 +220,12 @@ class MarketController:
                     rsp = self.api.post_validate_bid(
                         tangle_msg_id=b["tangle_msg_id"]
                     )
-                    logger.info(rsp)
+                    logger.info(f"Validating bid {b['id']} - "
+                                f"{b['tangle_msg_id']} ... Ok!")
+                    logger.debug(rsp)
             except Exception:
-                logger.exception(f"Unable to validate bid {b}")
+                logger.exception(f"Validating bid {b['id']} - "
+                                 f"{b['tangle_msg_id']} ... Failed!")
 
     def close_market_session(self):
         """
@@ -184,12 +235,13 @@ class MarketController:
         """
         # List last market 'open' sessions:
         open_session = self.api.list_last_session(status='open')
+        logger.info("Current 'OPEN' session:")
         logger.info(open_session)
         logger.info("")
 
         # Change market session status from 'OPEN' to 'CLOSED':
         self.api.update_market_session(
-            session_id=open_session["market_session_id"],
+            session_id=open_session["id"],
             status="closed",
             close_ts=dt.datetime.utcnow()
         )
@@ -206,15 +258,21 @@ class MarketController:
         launch_time = launch_time.to_pydatetime()
 
         # ################################
-        # Fetch session data
+        # Fetch session info
         # #################################
-        # Fetch session data:
-        session_data, buyers_bids, active_sellers, price_weights = get_session_data(self.api)  # noqa
+        # Fetch session info:
+        session_info = get_session_data(self.api)
+        session_data = session_info["session_data"]
+        bids_per_resource = session_info["bids_per_resource"]
+        users_resources = session_info["users_resources"]
+        price_weights = session_info["price_weights"]
+        logger.debug(f"\nSession info:"
+                     f"\n{json.dumps(users_resources, indent=3)}")
 
         # ###################################################
         # Check if there are sufficient bids to run market
         # ####################################################
-        if len(buyers_bids) == 0:
+        if len(bids_per_resource) <= 1:
             close_no_bids_session(
                 api_controller=self.api,
                 curr_session_data=session_data,
@@ -228,27 +286,20 @@ class MarketController:
         # Convert units from IOTA to MIOTA:
         # ####################################
         session_data = convert_session_data_to_mi(data=session_data)
-        buyers_bids = convert_buyers_bids_to_mi(bids=buyers_bids)
-
-        # ################################
-        # Check market buyers/sellers ID's
-        # ################################
-        buyers_ids = [x["user"] for x in buyers_bids if x["confirmed"] is True]
-        sellers_ids = active_sellers
+        bids_per_resource = convert_buyers_bids_to_mi(bids=bids_per_resource)
 
         # ################################
         # Query agents measurements:
         # ################################
-        measurements = get_measurements_data(
-            buyers_ids=buyers_ids,
-            sellers_ids=sellers_ids,
+        measurements = get_measurements_data_mock(
+            users_resources=users_resources,
             market_launch_time=launch_time
         )
 
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=-1)
+        mc = MarketClass(n_jobs=settings.N_JOBS, enable_db_uploads=True)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
@@ -256,15 +307,166 @@ class MarketController:
         )
         mc.show_session_details()
         mc.start_session(api_controller=self.api)
-        # -- Load agents bids:
-        mc.load_buyers_bids(bids=buyers_bids)
-        mc.load_sellers(identifiers=active_sellers)
-        # -- Load agents measurements data:
-        mc.load_agents_measurements(measurements=measurements)
+        # -- Load resources bids:
+        mc.load_users_resources(users_resources=users_resources)
+        mc.load_resources_bids(bids=bids_per_resource)
+        # -- Load resources measurements data:
+        mc.load_resources_measurements(measurements=measurements)
         # -- Run market session:
-        mc.run_session()
+        mc.define_payments_and_forecasts()
+        mc.define_sellers_revenue()
+        mc.save_session_results()
+        mc.validate_session_results(raise_exception=True)
         # -- Display session results
         mc.show_session_results()
+        # -- Process payments:
+        mc.process_payments(api_controller=self.api)
+        # -- Update market price for next session:
+        mc.update_market_price()
+        # -- End session:
+        mc.end_session(api_controller=self.api)
+        # -- Open Next session:
+        mc.open_next_session(api_controller=self.api)
+        # -- Display session results
+        mc.show_session_results()
+        return True
+
+    def run_fake_market_session(self):
+        """
+        Run last 'closed' market session. Session state is updated to
+        'running' during execution and to 'finished' once it is complete.
+
+        :return:
+        """
+        from copy import deepcopy
+        launch_time = dt.datetime.utcnow()
+        launch_time = pd.to_datetime(launch_time).tz_localize("UTC")
+        launch_time = launch_time.to_pydatetime()
+
+        # ################################
+        # Fetch session info
+        # #################################
+        # Fetch session info:
+        session_info = get_session_data(self.api)
+        logger.debug(f"\nSession data:"
+                     f"\n{session_info}")
+        session_data = session_info["session_data"]
+        bids_per_resource = session_info["bids_per_resource"]
+        users_resources = session_info["users_resources"]
+        price_weights = session_info["price_weights"]
+        logger.debug(f"\nUser resources (before fake users):"
+                     f"\n{json.dumps(users_resources, indent=3)}")
+
+        # ###################################################
+        # Check if there are sufficient bids to run market
+        # ####################################################
+        if len(bids_per_resource) == 0:
+            close_no_bids_session(
+                api_controller=self.api,
+                curr_session_data=session_data,
+                curr_price_weights=price_weights
+            )
+            logger.error("No buyer bids available. "
+                         "Finishing session & creating new one.")
+            return False
+        # elif len(bids_per_resource) > 1:
+        #     logger.error("You cannot have more than 1 bid while on "
+        #                  "'fake' market mode.")
+        #     return False
+        # else:
+        #     if len(users_resources) > 1:
+        #         logger.error("You cannot have more than 1 resource registered "
+        #                      "in the market, in this 'fake' market mode.")
+        #         return False
+
+        resources_w_bids = set([x["resource"] for x in bids_per_resource])
+        users_w_bids = set([x["user"] for x in bids_per_resource])
+        bid_id_list = set([x["id"] for x in bids_per_resource])
+        _last_res = max(resources_w_bids) + 1
+        _last_user = max(users_w_bids) + 1
+        _last_bid_id = max(bid_id_list) + 1
+        _n = 5  # number of extra resources/users/bids
+        extra_resources = [x for x in range(_last_res, _last_res + _n)]
+        extra_users = [x for x in range(_last_user, _last_user + _n)]
+        extra_bid_ids = [x for x in range(_last_bid_id, _last_bid_id + _n)]
+
+        zip_gen = zip(extra_resources, extra_users, extra_bid_ids)
+        for (res_id, user_id, bid_id) in zip_gen:
+            bids_per_resource.append(
+                {
+                    'id': bid_id,
+                    'tangle_msg_id': 'xaxxxxsaxacas',
+                    'max_payment': session_data["market_price"],
+                    'bid_price': session_data["market_price"],
+                    'gain_func': 'mse',
+                    'confirmed': True,
+                    'registered_at': '2022-01-04T10:32:15.376562Z',
+                    'has_forecasts': True,
+                    'user': user_id,
+                    'resource': res_id,
+                    'market_session': session_data["id"]
+                }
+            )
+            users_resources.append(
+                {'id': res_id,
+                 'name': 'resource-1',
+                 'type': 'measurements',
+                 'to_forecast': True,
+                 'registered_at': '2022-01-04T10:31:32.785753Z',
+                 'user': user_id}
+            )
+
+        logger.debug(f"\nUser resources (after fake users):"
+                     f"\n{json.dumps(users_resources, indent=3)}")
+
+        # ###################################
+        # Convert units from IOTA to MIOTA:
+        # ####################################
+        session_data = convert_session_data_to_mi(data=session_data)
+        bids_per_resource = convert_buyers_bids_to_mi(bids=bids_per_resource)
+
+        # ################################
+        # Query agents measurements:
+        # ################################
+        measurements = get_measurements_data_mock(
+            users_resources=users_resources,
+            market_launch_time=launch_time
+        )
+
+        # ################################
+        # Create & Run Market Session
+        # ################################
+        mc = MarketClass(n_jobs=settings.N_JOBS, enable_db_uploads=True)
+        mc.init_session(
+            session_data=session_data,
+            price_weights=price_weights,
+            launch_time=launch_time
+        )
+        mc.show_session_details()
+        mc.start_session(api_controller=self.api)
+        # -- Load resources bids:
+        mc.load_users_resources(users_resources=users_resources)
+        mc.load_resources_bids(bids=bids_per_resource)
+        # -- Load resources measurements data:
+        mc.load_resources_measurements(measurements=measurements)
+        # -- Run market session:
+        mc.define_payments_and_forecasts()
+        mc.define_sellers_revenue()
+        mc.save_session_results()
+        # -- Display session results
+        mc.show_session_results()
+
+        # Remove fictitious agents / resources
+        for res in extra_resources:
+            del mc.sellers_data[res]
+            del mc.buyers_data[res]
+            del mc.mkt_sess.market_fee_per_resource[res]
+            del mc.mkt_sess.buyers_results[res]
+            del mc.mkt_sess.sellers_results[res]
+
+        # Reset market fees (to one resource only)
+        mc.mkt_sess.total_market_fee = sum(mc.mkt_sess.market_fee_per_resource.values())
+
         # -- Process payments:
         mc.process_payments(api_controller=self.api)
         # -- Update market price for next session:
@@ -342,12 +544,19 @@ class MarketController:
                 logger.exception(f"Failed to get user {user_id} address.")
                 continue
 
+        if len(transfer_list) == 0:
+            log_msg_ = "Balance transfer-out list is empty."
+            raise WalletTransferOutException(
+                message=log_msg_,
+                errors={"message": log_msg_}
+            )
+
         # Market balance:
         balance = self.wallet.get_balance()
         balance = balance["available"]
-        print(f"Current balance (market wallet): {balance / 1000000}Mi")
-        print(f"Total to transfer: {total_transfer / 1000000}Mi")
-        print(f"Expected remaining: {(balance - total_transfer) / 1000000}Mi")
+        logger.info(f"Current balance (market wallet): {balance / 1000000}Mi")
+        logger.info(f"Total to transfer: {total_transfer / 1000000}Mi")
+        logger.info(f"Expected remaining: {(balance - total_transfer) / 1000000}Mi")
 
         try:
             # Create multi-transfer operations:
@@ -379,57 +588,6 @@ class MarketController:
             except WalletTransferOutException:
                 logger.error("Failed to register tokens transfer out action.")
                 continue
-
-        # Transfer tokens out:
-        # 1. Request user address (if non-existent, skips user)
-        # 2. Transfer tokens to user & save node response:
-        # 3. Validate transfer with Tangle Lookup:
-        # 4. POST request to update users balance in database tables
-        # for b in balance_list:
-        #     user_id = b["user"]
-        #     balance_iota = int(b["balance"])
-        #     wallet = WalletController()
-        #     market_balance = wallet.get_balance()
-        #     print(market_balance)
-        #     try:
-        #         address = self.api.get_user_wallet_address(user_id=user_id)
-        #     except UserWalletException:
-        #         logger.exception(f"Failed to get user {user_id} address.")
-        #         continue
-        #
-        #     try:
-        #         node_response = self.wallet.transfer_tokens(
-        #             amount=balance_iota,
-        #             address=address
-        #         )
-        #         tangle_msg_id = node_response["id"]
-        #     except Exception:
-        #         logger.exception(f"Failed to transfer_tokens to {user_id}.")
-        #         continue
-        #
-        #     try:
-        #         sleep(2)  # sleep a bit - let it solidify in tangle:
-        #         self.tangle.validate_tangle_message(
-        #             message_id=tangle_msg_id,
-        #             expected_amount=balance_iota,
-        #             output_address=address,
-        #         )
-        #     except Exception:
-        #         logger.exception(f"Failed to validate tangle_msg_id {tangle_msg_id}.")
-        #         continue
-        #
-        #     try:
-        #         self.api.post_transfer_out(
-        #             user_id=user_id,
-        #             amount=balance_iota,
-        #             tangle_msg_id=tangle_msg_id,
-        #             user_wallet_address=address
-        #         )
-        #     except WalletTransferOutException:
-        #         logger.exception(f"Failed to register tokens transfer
-        #         out action.")
-        #         continue
-        #     i += 1
 
     def validate_tokens_transfer(self):
         """

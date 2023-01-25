@@ -1,6 +1,5 @@
 import os
 
-from pprint import pprint
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -9,11 +8,13 @@ load_dotenv('.env')
 from conf import settings
 from src.wallet import WalletController
 from src.MarketController import MarketController
+from src.market.util.custom_exceptions import NoMarketBuyersExceptions
 
 from src.api.exception.APIException import (
     NoMarketSessionException,
     MarketSessionException,
     MarketWalletAddressException,
+    MarketAccountException
 )
 
 # logger:
@@ -96,7 +97,7 @@ def market_configuration():
         print("2  - Get current market wallet address")
         print("3  - Update market wallet address")
         _sep()
-        print("9 - Return to previous menu.")
+        print("\\ - Return to previous menu.")
         print("0 - Exit")
         _empty()
         choice = input("Please make a choice: ")
@@ -114,15 +115,13 @@ def market_configuration():
                 logger.error("Failed to get wallet address.")
         elif choice == "3":
             try:
-                old_address = input("Enter market wallet address (old): ")
-                new_address = input("Enter market wallet address (new): ")
+                new_address = input("New market wallet address: ")
                 market.update_market_wallet_address(
-                    old_address=old_address,
                     new_address=new_address
                 )
             except MarketWalletAddressException:
                 pass
-        elif choice == "9":
+        elif choice == "\\":
             return
         elif choice == "0":
             exit("Exit.")
@@ -144,15 +143,17 @@ def market_menu():
         _clear_console()
         print("     Market OPS MENU")
         print("1  - Open market session")
-        print("2  - Get bids for current market session")
+        print("2  - Get bids for latest market session")
         print("3  - Close market session")
         print("4  - Approve market bids")
         print("5  - Run market session")
         print("6  - Get users market balance")
         print("7  - Transfer token balance back to agents")
         print("8  - Validate token transfers")
+        print("9  - List last session available.")
+        print("10  - Change session status.")
         _sep()
-        print("9 - Return to previous menu.")
+        print("\\ - Return to previous menu.")
         print("0 - Exit")
         _empty()
         choice = input("Please make a choice: ")
@@ -161,54 +162,88 @@ def market_menu():
             try:
                 # Create first market session:
                 market.open_market_session()
-            except NoMarketSessionException:
-                pass
-            except MarketSessionException:
-                pass
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to open session.")
         elif choice == "2":
             try:
                 # Create first market session:
-                bids = market.get_buyers_bids()
-                pprint(bids)
+                market.get_buyers_bids()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
             except Exception:
-                pass
+                logger.exception("Failed to list bids.")
         elif choice == "3":
-            # Close market session (no more bids):
             try:
+                # Close market session (no more bids):
                 market.close_market_session()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
             except Exception:
-                pass
+                logger.exception("Failed to close session.")
         elif choice == "4":
-            # Approve buyers bids:
             try:
+                # Approve buyers bids:
                 market.approve_buyers_bids()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
             except Exception:
-                pass
+                logger.exception("Failed to approve bids.")
         elif choice == "5":
-            # Run market session:
             try:
-                market.run_market_session()
-            except Exception:
-                pass
+                # Run market session:
+                if settings.RUN_REAL_MARKET:
+                    market.run_market_session()
+                else:
+                    market.run_fake_market_session()
+            except NoMarketBuyersExceptions:
+                logger.error("Insuficient market bids (buyers) to create a new session.")
+            except BaseException:
+                logger.exception("Failed to run market session.")
         elif choice == "6":
             try:
                 # List users market balance:
                 market.list_user_market_balance()
-            except Exception:
-                pass
+            except MarketAccountException as ex:
+                logger.error(ex)
+            except BaseException:
+                logger.exception("Failed to list user market balance.")
         elif choice == "7":
             try:
                 # Transfer tokens back to clients:
                 market.transfer_tokens_out()
-            except MarketSessionException:
-                pass
+            except MarketSessionException as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to transfer tokens out")
         elif choice == "8":
             try:
-                # Transfer tokens back to clients:
+                # Validate final token balance transfers:
                 market.validate_tokens_transfer()
-            except MarketSessionException:
-                pass
+            except MarketSessionException as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to validate tokens transfer")
         elif choice == "9":
+            try:
+                # Close market session (no more bids):
+                market.list_last_session()
+            except NoMarketSessionException as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to list session.")
+        elif choice == "10":
+            try:
+                # Close market session (no more bids):
+                session_id = int(input("Session ID: "))
+                new_status = input("New session status [options: staged,open,closed,running,finished]: ")
+                market.set_session_status(session_id, new_status)
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to list session.")
+        elif choice == "\\":
             return
         elif choice == "0":
             exit("Exit.")
@@ -228,7 +263,7 @@ def wallet_menu():
         print("2  - Get wallet balance")
         print("3  - Transfer balance to address")
         _sep()
-        print("9 - Return to previous menu.")
+        print("\\ - Return to previous menu.")
         print("0 - Exit")
         _empty()
         choice = input("Please make a choice: ")
@@ -250,7 +285,7 @@ def wallet_menu():
             # Close market session (no more bids):
             try:
                 amount = input("Enter transfer amount "
-                               "(use 'FB' keywork for full balance "
+                               "(use 'FB' keyword for full balance "
                                "transfer): ")
                 if amount.lower() == "fb":
                     amount = wallet.get_balance()["available"]
@@ -265,7 +300,7 @@ def wallet_menu():
                 print("Node Response:", node_response)
             except Exception as ex:
                 logger.exception(repr(ex))
-        elif choice == "9":
+        elif choice == "\\":
             return
         elif choice == "0":
             exit("Exit.")

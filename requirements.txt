@@ -1,5 +1,5 @@
 requests
-sklearn
+scikit-learn
 pandas
 numpy
 loguru
@@ -9,3 +9,5 @@ pytest
 python-dotenv
 psycopg2
 sqlalchemy
+pytest-cov
+joblib

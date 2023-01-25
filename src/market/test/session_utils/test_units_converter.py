@@ -8,6 +8,12 @@ from src.market.helpers.units_helpers import (
     convert_mi_to_i
 )
 
+from ..common import (
+    create_market_session_data,
+    create_user_resource_db,
+    create_buyer_bid_per_resource
+)
+
 
 def test_mi_to_i_functions():
     value_i = 1000000
@@ -24,36 +30,43 @@ def test_mi_to_i_functions():
         convert_mi_to_i(value_mi="bob")
 
 
-def test_mi_to_i_session_data(session_data_json):
+def test_mi_to_i_session_data():
+    # Session data in original units:
+    session_data = create_market_session_data(convert_to_miota=False)
+
     # -- Check if original response types are as expected
-    assert isinstance(session_data_json["b_min"], int)
-    assert isinstance(session_data_json["b_max"], int)
-    assert isinstance(session_data_json["market_price"], float)
+    assert isinstance(session_data["b_min"], int)
+    assert isinstance(session_data["b_max"], int)
+    assert isinstance(session_data["market_price"], float)
 
     # -- Convert session data to mi:
-    session_data = convert_session_data_to_mi(session_data_json)
+    session_data_mi = convert_session_data_to_mi(session_data)
 
     # -- Check if units are correct:
-    for k, v in session_data_json.items():
+    for k, v in session_data.items():
         if k in ["b_min", "b_max", "market_price"]:
-            assert v / 1000000.0 == session_data[k]
-            assert isinstance(session_data[k], np.float64)
+            assert v / 1000000.0 == session_data_mi[k]
+            assert isinstance(session_data_mi[k], np.float64)
         else:
-            assert v == session_data[k]
-            assert isinstance(v, type(session_data[k]))
+            assert v == session_data_mi[k]
+            assert isinstance(v, type(session_data_mi[k]))
 
 
-def test_mi_to_i_buyers_bids_data(buyers_bids_json):
+def test_mi_to_i_buyers_bids_data():
+    resource_db = create_user_resource_db(nr_users=3, nr_resources_per_user=3)
+    bid_db = create_buyer_bid_per_resource(resource_db=resource_db,
+                                           convert_to_miota=False)
+
     # -- Convert session data to mi:
-    buyers_bids = convert_buyers_bids_to_mi(buyers_bids_json)
+    buyers_bids = convert_buyers_bids_to_mi(bid_db)
 
-    for i in range(len(buyers_bids_json)):
+    for i in range(len(bid_db)):
         # -- Check if original response types are as expected
-        assert isinstance(buyers_bids_json[i]["bid_price"], int)
-        assert isinstance(buyers_bids_json[i]["max_payment"], int)
+        assert isinstance(bid_db[i]["bid_price"], int)
+        assert isinstance(bid_db[i]["max_payment"], int)
 
         # -- Check if units are correct:
-        for k, v in buyers_bids_json[i].items():
+        for k, v in bid_db[i].items():
             if k in ["bid_price", "max_payment"]:
                 assert v / 1000000.0 == buyers_bids[i][k]
                 assert isinstance(buyers_bids[i][k], np.float64)
