@@ -23,6 +23,7 @@ from .market.helpers.units_helpers import (
 )
 
 from .api.exception.APIException import *
+from .market.exception.ControllerException import *
 from .wallet.exception.TangleException import *
 from .wallet.exception.WalletException import *
 
@@ -76,6 +77,17 @@ class MarketController:
         logger.info("Current 'STAGED' session:")
         logger.info(staged_session)
         logger.info("")
+
+        # Do not allow opening a new market session unless all the market
+        # transfer out transactions (which return users balance to each user)
+        # are valid
+        pending_transfer_list = self.api.list_pending_transfer_out()
+        if len(pending_transfer_list) > 0:
+            raise PendingTransferOut(
+                message=f"Unable to open new session as "
+                        f"there are still {len(pending_transfer_list)} "
+                        f"unconfirmed market transfers from last session. "
+                        f"Please validate token transfers first.")
 
         # Change market session status from 'STAGED' to 'OPEN':
         self.api.update_market_session(
