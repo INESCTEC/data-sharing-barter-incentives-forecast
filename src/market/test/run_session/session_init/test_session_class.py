@@ -15,6 +15,8 @@ def expected_session_attrs():
         'next_market_price',
         # Results:
         'buyers_results', 'sellers_results',
+        # Forecasts:
+        'buyers_forecasts',
         # Timestamps / status
         'finish_ts', 'launch_ts',
         'status',

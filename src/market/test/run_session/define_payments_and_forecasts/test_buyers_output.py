@@ -15,6 +15,7 @@ def test_buyers_output_attrs(market_session_2u_1r):
                                                   'market_fee',
                                                   'payment',
                                                   'targets',
+                                                  'forecasts',
                                                   'gain_func',
                                                   'gain',
                                                   'final_bid',
