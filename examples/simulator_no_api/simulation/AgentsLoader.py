@@ -23,7 +23,7 @@ class AgentsLoader:
         self.data_path = data_path
         self.bids_scenario = bids_scenario
 
-    def read_data(self, path: str, sep: str=','):
+    def read_data(self, path: str, sep: str = ','):
         """
         Read CSV data. Drops duplicates based on datetime and initializes
          a 'self.dataset' class attribute containing the loaded timeseries
@@ -96,4 +96,3 @@ class AgentsLoader:
         # Read measurements data and assign to each user resource
         self.load_measurements()
         return self
-
