@@ -35,9 +35,9 @@ def calc_forecast_error(X, y, n_hours, gain_func="rmse"):
     y_train = y[0:(X.shape[0] - n_hours - 1), :]
     y_val = y[(X.shape[0] - n_hours):, :]
     # Standardize data:
-    # scaler_x = StandardScaler()
-    # X_train = scaler_x.fit_transform(X_train)
-    # X_val = scaler_x.transform(X_val)
+    scaler_x = StandardScaler()
+    X_train = scaler_x.fit_transform(X_train)
+    X_val = scaler_x.transform(X_val)
     #  Train model:
     model = LinearRegression(fit_intercept=True).fit(X_train, y_train)
     # Compute forecasts:
