@@ -1,5 +1,5 @@
 *.csv
-examples/simulator_no_api/data/datasets/
+examples/simulator_no_api/simulation/datasets/
 
 .idea/
 .vscode/

@@ -65,7 +65,6 @@ def upload_forecasts(market_session_id,
                      forecasts,
                      table_name):
     # Create datetime col:
-    forecasts.index.name = "datetime"
     forecasts.reset_index(drop=False, inplace=True)
     # Create other cols:
     forecasts["request"] = request

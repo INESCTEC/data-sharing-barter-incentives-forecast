@@ -428,6 +428,7 @@ class MarketClass:
             "resource_id": resource_id,
             "user_id": user_id,
             "sellers_features_name": sellers_features_name,
+            "forecasts": forecasts
         }
 
     def define_sellers_revenue(self):
@@ -465,7 +466,7 @@ class MarketClass:
                 logger.debug(f"Distributing revenue ... Ok! "
                              f"({time() - t0:.2f}s)")
 
-    def save_session_results(self):
+    def save_session_results(self, save_forecasts=False):
         """
         Update buyer's & seller's Classes w/ session results
 
@@ -473,6 +474,9 @@ class MarketClass:
         logger.info("Saving session results ...")
         for cls in self.buyers_data.values():
             self.mkt_sess.set_buyer_result(cls)
+            if save_forecasts:
+                self.mkt_sess.set_buyer_forecasts(cls)
+
         for cls in self.sellers_data.values():
             self.mkt_sess.set_seller_result(cls)
         logger.info("Saving session results ... Ok!")
@@ -554,6 +558,7 @@ class MarketClass:
             self.buyers_data[out["resource_id"]].set_payment(out["payment"])
             self.buyers_data[out["resource_id"]].set_gain(out["gain"])
             self.buyers_data[out["resource_id"]].set_final_bid(out["final_bid"])  # noqa
+            self.buyers_data[out["resource_id"]].set_forecasts(out["forecasts"])  # noqa
             self.mkt_sess.add_market_fee(
                 resource_id=out["resource_id"],
                 value=out["market_fee"]

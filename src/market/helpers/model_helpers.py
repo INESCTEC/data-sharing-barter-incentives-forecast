@@ -181,4 +181,5 @@ def create_forecast(train_features, train_targets, test_features_df):
     model = LinearRegression(fit_intercept=True).fit(X_train, train_targets)
     # Compute forecasts:
     forecasts_df["value"] = model.predict(X_forecast).ravel()
+    forecasts_df.index.name = "datetime"
     return forecasts_df

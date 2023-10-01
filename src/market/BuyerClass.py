@@ -49,6 +49,13 @@ class BuyerClass(ValidatorClass):
             "has_to_pay": self.has_to_pay
         }
 
+    @property
+    def forecasts_dict(self):
+        f_ = self.forecasts.copy()
+        f_["resource_id"] = self.resource_id
+        f_["user_id"] = self.user_id
+        return f_.reset_index().to_dict(orient="records")
+
     def set_measurements(self, data):
         self.y = data
 
