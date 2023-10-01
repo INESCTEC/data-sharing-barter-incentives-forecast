@@ -1,0 +1,23 @@
+[
+  {
+    "user": 1,
+    "resource": 0,
+    "bid_price": 5500000.0,
+    "gain_func": "mse",
+    "max_payment": 5500000.0
+  },
+  {
+    "user": 2,
+    "resource": 1,
+    "bid_price": 5500000.0,
+    "gain_func": "mse",
+    "max_payment": 5500000.0
+  },
+  {
+    "user": 3,
+    "resource": 2,
+    "bid_price": 5500000.0,
+    "gain_func": "mse",
+    "max_payment": 5500000.0
+  }
+]

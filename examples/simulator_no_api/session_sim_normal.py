@@ -1,46 +1,44 @@
 # flake8: noqa
 import gc
-import datetime as dt
+import sys
+
+from copy import deepcopy
 
 from loguru import logger
 
-from data import SessionGenerator, AgentsLoader
-from helpers.reporting import create_report
+from src.market import MarketClass
 from src.market.helpers.units_helpers import (
     convert_session_data_to_mi,
     convert_buyers_bids_to_mi,
 )
+from simulation import SessionGenerator, AgentsLoader, SimulatorManager
 
 
 if __name__ == '__main__':
-    from examples.simulator_no_api.SimulatorConfig import Config
-    from src.market import MarketClass
-    import sys
+
+    # -- Setup logger (removes existing logger + adds new sys logger):
     logger.remove()
     logger.add(sys.stderr, level="INFO")
 
+    # Set base simulation parameters:
     N_JOBS = -1
+    simulation_params = {
+        "dataset_path": "files/datasets/example_1",
+        "bids_scenario": "scenario_1",
+        "nr_sessions": 10,
+        "first_lt_utc": "2020-05-01T10:00:00Z",
+        "session_freq": 1,
+    }
 
     # Load Session Configs:
-    cfg = Config(
-        dataset_path="data/datasets/carla_paper",
-        bids_scenario="scenario_1",
-        nr_sessions=1000,
-        first_lt_utc=dt.datetime(2020, 5, 1, 10, 00, 3, 4536),
-        session_freq=1,
-    )
+    manager = SimulatorManager(**simulation_params)
+
+    # -- Initialize helper variables:
     CURRENT_MARKET_PRICE = None
     CURRENT_PRICE_WEIGHTS = None
-    SESSIONS_LIST = cfg.SESSIONS_LIST
-    RESULTS = cfg.RESULTS
-    BUYERS_DF = cfg.BUYERS_DF
-    SELLERS_DF = cfg.SELLERS_DF
-    MARKET_DF = cfg.MARKET_DF
-    REPORTS_PATH = cfg.REPORTS_PATH
-    DATASET_PATH = cfg.DATASET_PATH
 
     # -- Run market sessions:
-    for session_id, market_lt in enumerate(cfg.SESSIONS_LIST[1:]):
+    for session_id, market_lt in manager.SESSIONS_LIST:
         logger.info("/" * 79)
         logger.info("\\" * 79)
         market_lt = market_lt.to_pydatetime()
@@ -50,6 +48,8 @@ if __name__ == '__main__':
         # #########################################
         sg = SessionGenerator()
         if session_id > 0:
+            # If not first session, update market price and weights based
+            # on previous session results:
             sg.set_market_price(market_price=CURRENT_MARKET_PRICE * 1e6)
             sg.set_price_weights(price_weights=CURRENT_PRICE_WEIGHTS)
 
@@ -60,13 +60,15 @@ if __name__ == '__main__':
         # Create Mock Data Agents:
         # ###################################################
         # Create fictitious bids:
-        ag = AgentsLoader(launch_time=market_lt, market_session=session_id)
-        ag.read_data(path=DATASET_PATH)
-        ag.load_user_resources()
-        ag.load_bids(scenario=cfg.BIDS_SCENARIO)
-        measurements = ag.load_measurements()
+        ag = AgentsLoader(
+            launch_time=market_lt,
+            market_session=session_id,
+            data_path=manager.DATASET_PATH,
+            bids_scenario=manager.BIDS_SCENARIO
+        ).load_datasets()
 
         # Session data:
+        measurements = ag.measurements
         session_data = sg.session_data
         price_weights = sg.price_weights
         bids_per_resource = ag.bids_per_resource
@@ -82,11 +84,13 @@ if __name__ == '__main__':
         # Run Market Session
         # ################################
         mc = MarketClass(n_jobs=N_JOBS)
+        # -- Initialize market session:
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
             launch_time=market_lt
         )
+        # -- Display session details:
         mc.show_session_details()
         # -- Load resources bids:
         mc.load_users_resources(users_resources=users_resources)
@@ -95,8 +99,10 @@ if __name__ == '__main__':
         mc.load_resources_measurements(measurements=measurements)
         # -- Run market session:
         mc.define_payments_and_forecasts()
+        # -- Display session results
         mc.define_sellers_revenue()
-        mc.save_session_results()
+        # -- Save & validate session results (raise exception if not valid)
+        mc.save_session_results(save_forecasts=True)
         mc.validate_session_results(raise_exception=True)
         # -- Display session results
         mc.show_session_results()
@@ -105,28 +111,33 @@ if __name__ == '__main__':
         # -- Display session results
         mc.show_session_results()
 
-        # Save session results
-        RESULTS[session_id] = mc.mkt_sess
-        BUYERS_DF, SELLERS_DF, MARKET_DF = create_report(
+        #################################
+        # Finalize Session
+        #################################
+        manager.add_session_reports(
             session_id=session_id,
             session_lt=market_lt,
-            buyers_df=BUYERS_DF,
-            sellers_df=SELLERS_DF,
-            market_df=MARKET_DF,
-            market_sess=mc.mkt_sess,
-            path=REPORTS_PATH,
+            session_details=deepcopy(mc.mkt_sess.details),
+            session_buyers_results=deepcopy(mc.mkt_sess.buyers_results),
+            session_buyers_forecasts=deepcopy(mc.mkt_sess.buyers_forecasts),
+            session_sellers_results=deepcopy(mc.mkt_sess.sellers_results),
         )
+
+        # Save reports to csv:
+        manager.reports_to_csv()
 
         # Update variables for next session
         CURRENT_MARKET_PRICE = mc.mkt_sess.next_market_price
         CURRENT_PRICE_WEIGHTS = mc.mkt_sess.next_weights_p
 
+        # Display next session references
         logger.info(">" * 70)
         logger.info("Next session references:")
         logger.info(f"Market price: {CURRENT_MARKET_PRICE}")
         logger.info(f"Price weights: {CURRENT_PRICE_WEIGHTS}")
         logger.info("<" * 70)
 
+        # Delete objects to free memory
         del mc
         del ag
         del sg
