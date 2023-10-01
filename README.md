@@ -69,8 +69,8 @@ Also, only 'simulation' functionalities (i.e., without integration with the data
 1. Install the python dependencies
    ```shell
         $ pip install -r requirements.txt
-     ```
-    ```
+   ```
+
 2. Run the 'run_menu.py' script to open the interactive market menu
     ```shell
         $ python run_menu.py
