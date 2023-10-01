@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 
 from math import sqrt
-from sklearn.model_selection import cross_val_score
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
+
 from sklearn.metrics import (
     mean_absolute_error as _mae_,
     mean_squared_error as _mse_
 )
+
+from src.market.models.linear import linear_regression as forecast_model
 
 
 """ -------------- BASE EVALUATION METRICS -------------- """
@@ -34,14 +34,10 @@ def calc_forecast_error(X, y, n_hours, gain_func="rmse"):
     X_val = X[(X.shape[0] - n_hours):, :]
     y_train = y[0:(X.shape[0] - n_hours - 1), :]
     y_val = y[(X.shape[0] - n_hours):, :]
-    # Standardize data:
-    scaler_x = StandardScaler()
-    X_train = scaler_x.fit_transform(X_train)
-    X_val = scaler_x.transform(X_val)
-    #  Train model:
-    model = LinearRegression(fit_intercept=True).fit(X_train, y_train)
-    # Compute forecasts:
-    preds = model.predict(X_val)
+
+    # Generate forecasts:
+    preds = forecast_model(X_train, X_val, y_train)
+
     # Calculate gain (forecast error)
     if gain_func == "rmse":
         return __rmse(y_val, preds)
@@ -170,16 +166,13 @@ def create_forecast_mock(features, targets, start_date, end_date):
 
 def create_forecast(train_features, train_targets, test_features_df):
     forecasts_df = pd.DataFrame(index=test_features_df.index)
-    # Train/Test split:
     X_forecast = test_features_df.values
-    # Standardize features:
-    # scaler_x = StandardScaler()
-    # X_train = scaler_x.fit_transform(train_features)
-    # X_forecast = scaler_x.transform(X_forecast)
     X_train = train_features
-    #  Train model:
-    model = LinearRegression(fit_intercept=True).fit(X_train, train_targets)
+
+    # Generate forecasts:
+    preds = forecast_model(X_train, X_forecast, train_targets)
+
     # Compute forecasts:
-    forecasts_df["value"] = model.predict(X_forecast).ravel()
+    forecasts_df["value"] = preds.ravel()
     forecasts_df.index.name = "datetime"
     return forecasts_df
