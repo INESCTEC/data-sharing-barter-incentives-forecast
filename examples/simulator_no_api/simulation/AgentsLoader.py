@@ -11,7 +11,7 @@ class AgentsLoader:
     - Reading CSV data
 
     """
-    def __init__(self, launch_time, market_session, data_path, bids_scenario):
+    def __init__(self, launch_time, market_session, data_path, bids_scenario, datetime_fmt="%Y-%m-%d %H:%M"):
         self.launch_time = launch_time
         self.market_session = market_session
         self.data_path = None
@@ -22,6 +22,7 @@ class AgentsLoader:
         self.bids_per_resource = None
         self.data_path = data_path
         self.bids_scenario = bids_scenario
+        self.datetime_fmt = datetime_fmt
 
     def read_data(self, path: str, sep: str = ','):
         """
@@ -39,7 +40,7 @@ class AgentsLoader:
         self.dataset.drop_duplicates("datetime", inplace=True)
         self.dataset.loc[:, 'datetime'] = pd.to_datetime(
             self.dataset["datetime"],
-            format="%Y-%m-%d %H:%M").dt.tz_localize("UTC")
+            format=self.datetime_fmt).dt.tz_localize("UTC")
         self.dataset.set_index("datetime", inplace=True)
         return self
 
@@ -52,7 +53,7 @@ class AgentsLoader:
         user_res_path = os.path.join(self.data_path, "user_resources.json")
         with open(user_res_path, "r") as f:
             self.users_resources = json.load(f)
-        self.resource_list = [x["id"] for x in self.users_resources]
+        self.resource_list = [x["resource_id"] for x in self.users_resources]
 
         return self
 

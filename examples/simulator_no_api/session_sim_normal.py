@@ -3,14 +3,16 @@ import gc
 import sys
 
 from copy import deepcopy
-
 from loguru import logger
 
+# -- If needed to run via command line, add root proj to sys path:
+# sys.path.append(r"<path_to_project>/valorem-market")
 from src.market import MarketClass
 from src.market.helpers.units_helpers import (
     convert_session_data_to_mi,
     convert_buyers_bids_to_mi,
 )
+
 from simulation import SessionGenerator, AgentsLoader, SimulatorManager
 
 
@@ -28,6 +30,7 @@ if __name__ == '__main__':
         "nr_sessions": 10,
         "first_lt_utc": "2020-05-01T10:00:00Z",
         "session_freq": 1,
+        "datetime_fmt": "%Y-%m-%d %H:%M:%S",
     }
 
     # Load Session Configs:
@@ -64,7 +67,8 @@ if __name__ == '__main__':
             launch_time=market_lt,
             market_session=session_id,
             data_path=manager.DATASET_PATH,
-            bids_scenario=manager.BIDS_SCENARIO
+            bids_scenario=manager.BIDS_SCENARIO,
+            datetime_fmt=manager.DATETIME_FMT
         ).load_datasets()
 
         # Session data:

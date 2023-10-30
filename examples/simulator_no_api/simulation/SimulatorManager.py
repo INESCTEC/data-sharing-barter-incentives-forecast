@@ -24,6 +24,7 @@ class SimulatorManager:
                  nr_sessions,
                  first_lt_utc,
                  session_freq,
+                 datetime_fmt="%Y-%m-%d %H:%M",
                  price_up_data_path=None,
                  price_down_data_path=None,
                  price_spot_data_path=None,
@@ -42,6 +43,7 @@ class SimulatorManager:
         self.PRICE_DOWN_DATA_PATH = price_down_data_path
         self.PRICE_SPOT_DATA_PATH = price_spot_data_path
         self.AGENTS_AREA_MAP_PATH = agents_area_map_path
+        self.DATETIME_FMT = datetime_fmt
 
         # parse first launch time:
         self.first_lt_utc = dt.datetime.strptime(first_lt_utc, "%Y-%m-%dT%H:%M:%SZ") # noqa

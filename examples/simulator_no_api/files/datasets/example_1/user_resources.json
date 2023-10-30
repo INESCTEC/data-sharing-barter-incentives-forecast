@@ -1,14 +1,14 @@
 [
   {
-    "user": 1,
-    "id": 0
+    "user_id": 1,
+    "resource_id": 0
   },
   {
-    "user": 2,
-    "id": 1
+    "user_id": 2,
+    "resource_id": 1
   },
   {
-    "user": 3,
-    "id": 2
+    "user_id": 3,
+    "resource_id": 2
   }
 ]
