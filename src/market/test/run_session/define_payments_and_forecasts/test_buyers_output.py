@@ -10,18 +10,18 @@ def test_buyers_output_attrs(market_session_2u_1r):
     import numpy as np
     assert isinstance(buyer_output["features"], np.ndarray)
     assert buyer_output["features"].shape == buyer_output["noisy_train_features"].shape
-    assert sorted(buyer_output_fields) == sorted(['features',
-                                                  'noisy_train_features',
-                                                  'market_fee',
-                                                  'payment',
-                                                  'targets',
-                                                  'forecasts',
-                                                  'gain_func',
-                                                  'gain',
+    assert sorted(buyer_output_fields) == sorted(['buyer_features_name',
+                                                  'features',
                                                   'final_bid',
+                                                  'forecasts',
+                                                  'gain',
+                                                  'gain_func',
                                                   'initial_bid',
+                                                  'market_fee',
+                                                  'noisy_train_features',
+                                                  'payment',
                                                   'resource_id',
-                                                  'user_id',
-                                                  'sellers_features_name'])
-
-
+                                                  'sellers_features_name',
+                                                  'targets',
+                                                  'train_features_name',
+                                                  'user_id'])

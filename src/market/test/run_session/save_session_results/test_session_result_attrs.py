@@ -14,7 +14,8 @@ def test_buyers_and_sellers_results_attrs(market_session_2u_2r):
 
     # Check if necessary variables are available:
     for buyer, res in mc.mkt_sess.buyers_results.items():
-        assert sorted(res.keys()) == ['final_bid',
+        assert sorted(res.keys()) == ['features_list',
+                                      'final_bid',
                                       'gain',
                                       'gain_func',
                                       'has_to_pay',

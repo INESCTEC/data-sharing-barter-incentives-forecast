@@ -34,4 +34,3 @@ def check_mkdir_valorem_data(path_to_save, path_scenario, extra_path=None):
     except FileExistsError:
         # directory already exists
         pass
-

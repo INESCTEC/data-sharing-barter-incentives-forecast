@@ -81,6 +81,8 @@ def create_buyer_bid(convert_to_miota=False, use_custom_data=False, **kwargs):
         bid_data["bid_price"] = converter(bid_data["bid_price"])
         bid_data["max_payment"] = converter(bid_data["max_payment"])
 
+    bid_data["features_list"] = []
+
     return bid_data
 
 
