@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from .helpers.class_helpers import ValidatorClass
 
 
@@ -19,6 +19,7 @@ class BuyerClass(ValidatorClass):
     gain: np.float64 = None             # Resource id forecast estimated gain
     forecasts: pd.DataFrame = None      # Resource id market forecasts
     payment_split = {}                  # Payment division per seller
+    features_list: list = field(default_factory=list)  # Suggested features
 
     def validate_attributes(self):
         if self.user_id is None:
@@ -46,7 +47,8 @@ class BuyerClass(ValidatorClass):
             "initial_bid": self.initial_bid,
             "final_bid": self.final_bid,
             "max_payment": self.max_payment,
-            "has_to_pay": self.has_to_pay
+            "has_to_pay": self.has_to_pay,
+            "features_list": self.features_list
         }
 
     @property
