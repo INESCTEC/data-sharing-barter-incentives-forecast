@@ -33,6 +33,10 @@ from src.market.util.custom_exceptions import (
 # -- Feature Selection
 from src.market.preprocessing.feature_selection.feature_preprocess import FeatureProcess
 
+# -- Feature Engineering:
+from .preprocessing.feature_engineering.autocorrelation import autocorrelation_analysis  # noqa
+from .preprocessing.feature_engineering.construct_inputs_funcs import construct_inputs_from_lags  # noqa
+
 # -- Mock data imports:
 from src.market.helpers.model_helpers import create_forecast
 from src.market.helpers.units_helpers import convert_mi_to_i
@@ -49,6 +53,7 @@ class MarketClass:
     FORECASTS_TABLE = "market_forecasts"
     MEASUREMENTS_TABLE = "market_forecasts"
     BIDS_TABLE = "market_session_bid"
+    MARKET_TZ = "utc"
 
     def __init__(self, n_jobs=-1,
                  enable_db_uploads=False,
@@ -67,6 +72,9 @@ class MarketClass:
         self.db_uploads = enable_db_uploads
         self.auto_feature_engineering = auto_feature_engineering
         self.auto_feature_selection = auto_feature_selection
+        self.forecast_start = None
+        self.forecast_end = None
+        self.forecast_range = None
 
     def activate_debug_mode(self):
         self.DEBUG = True
@@ -266,7 +274,7 @@ class MarketClass:
 
         :return: pd.DataFrame - sellers market dataset
         """
-        # 1. Define expected datetime range:
+        # Define expected datetime range:
         logger.info("Creating market dataset ...")
         _end_date = self.launch_time.replace(minute=0, second=0, microsecond=0)
         _end_date = _end_date + pd.DateOffset(hours=self.FORECAST_HORIZON)
@@ -274,16 +282,18 @@ class MarketClass:
         _range = pd.date_range(
             start=_end_date - pd.DateOffset(hours=_lookback_time),
             end=_end_date,
-            tz="utc",
+            tz=self.MARKET_TZ,
             freq="H"
         )
-        # 2. Add sellers data:
+
+        # Add sellers data:
         market_df = pd.DataFrame(index=_range)
         for seller_id, seller_cls in self.sellers_data.items():
             df_ = seller_cls.y[["value"]]
             df_ = df_.rename(columns={"value": seller_id})
             df_ = df_.resample("H").mean()
             market_df = market_df.join(df_, how="left")
+
         # Check if there is no market data:
         if market_df.dropna(how="all").empty:
             e_msg = "Error! No market dataset available. Terminating ..."
@@ -294,33 +304,71 @@ class MarketClass:
             return market_df
 
     def __create_market_features(self, market_df: pd.DataFrame):
+        """
+        Create market features dataset. This dataset is created on market
+        session start and will be used to complement each buyer information
+        (i.e., buyer_x dataset) with remaining information in the market
+        data pool (i.e., sellers dataset)
+
+        If auto_feature_engineering is True, then the market features dataset
+        will be created with lagged features for each seller 'measurements'
+        resource. The 'lag' reference will be the difference (in hours) between
+        the last date in the forecast horizon and the last date available in
+        the dataset.
+
+        'features' resources will be added to the feature dataset as is.
+
+        Data imputation mechanisms::
+        1. Backwards fill (limit 2h)
+        2. Fill remaining NaN with zeros (this will penalize sellers with no
+        data available for some hours)
+
+        :param market_df: (pd.DataFrame) market dataset (sellers data)
+        :return: (pd.DataFrame) market features dataset
+        """
         logger.info("Creating market features ...")
         # go to market dataset and ignore agent_id measurements
-        # todo: create lagged features (selection based on ACF / PACF)
         feat_df = pd.DataFrame(index=market_df.index)  # assure idx = buyer
+
+        # For seller resource timeseries in market dataset:
         for seller_id in market_df.columns:
             type_ = self.sellers_data[seller_id].resource_type
-            if (type_ == "measurements") and self.auto_feature_engineering:
-                for i in range(0, 1):
-                    lag_ = self.FORECAST_HORIZON + i
-                    _name = f"seller__{seller_id}__lag{lag_}"
-                    feat_df.loc[:, _name] = market_df[seller_id].shift(lag_)
-            elif type_ == "measurements" and not self.auto_feature_engineering:
-                continue
-            else:
+            if type_ == "measurements":
+                # -> create lagged features
+                if self.auto_feature_engineering:
+                    # Filter data for specific seller resource:
+                    _dataset = market_df[[seller_id]]
+                    # Get last available datetime:
+                    _last_date = _dataset.dropna().index[-1]
+                    # Get lag reference (difference (in hours) between the
+                    # last date in forecast horizon and last available date
+                    lag_ref = -int((self.forecast_range[-1] - _last_date).total_seconds() / 3600)  # noqa
+                    # Create lag reference:
+                    lag_vars = {seller_id: [('hour', [lag_ref])]}
+                    lag_name_prefix = f"seller__{seller_id}__"
+                    feat_df = construct_inputs_from_lags(
+                        df=_dataset,
+                        inputs=feat_df,
+                        lag_vars=lag_vars,
+                        lag_tz=self.MARKET_TZ,
+                        infer_dst_lags=False,
+                        lag_name_prefix=lag_name_prefix
+                    )
+            elif type_ == "features":
+                # -> add to market features dataset as it is
                 _name = f"seller__{seller_id}"
                 feat_df.loc[:, _name] = market_df[seller_id]
 
-        # todo: Check which features do not exist in forecast horizon and only
-        #  then replace NaN by zero
+        # Data imputation:
         feat_df.dropna(how="all", inplace=True)
-        # todo: add data imputation layer instead of this
+        feat_df.bfill(limit=2, inplace=True)
         feat_df.fillna(0, inplace=True)
+
         logger.info("Creating market features ... Ok!")
         return feat_df
 
-    @staticmethod
-    def __select_market_features(resource_id: str,
+    def __select_market_features(self,
+                                 resource_id: str,
                                  user_features_list: list,
                                  market_x_full: pd.DataFrame):
         """
@@ -340,8 +388,11 @@ class MarketClass:
 
         cols_to_remove_ = [resource_id] + user_features_list
         _cols = [x for x in market_x_full.columns if int(x.split('__')[1]) not in cols_to_remove_]  # noqa
-
-        return market_x_full[_cols]
+        # Check which of the valid cols have no NaN in forecast horizon
+        check_nulls = market_x_full[_cols].loc[self.forecast_range].isnull().any()  # noqa
+        # get name (index) of columns with information available
+        valid_cols = check_nulls[check_nulls == False].index
+        return market_x_full[valid_cols]
 
     def __create_buyer_features(self,
                                 buyer_y: pd.DataFrame,
@@ -361,22 +412,59 @@ class MarketClass:
         feat_df = feat_df.join(buyer_feat_)
 
         if self.auto_feature_engineering:
-            # todo: (selection based on ACF / PACF)
-            for i in range(0, 1):
-                lag_ = self.FORECAST_HORIZON + i
-                feat_df.loc[:, f"self__{target_resource_id}__lag{lag_}"] = buyer_y["target"].shift(lag_)  # noqa
+            from .preprocessing.feature_engineering.autocorrelation import autocorrelation_analysis  # noqa
+            from .preprocessing.feature_engineering.construct_inputs_funcs import construct_inputs_from_lags  # noqa
+            target_col = "target"
+            # Filter data for specific seller resource:
+            _dataset = buyer_y[[target_col]]
 
-        # todo: add data imputation method instead of fillna
-        #  avoid filling missing periods (in the middle of the data)
-        #  with zeros
-        feat_df.fillna(0, inplace=True)
+            # Compute auto-correlation analysis (ACF)
+            ac_analysis = autocorrelation_analysis(
+                dataset=_dataset,
+                acf_kwargs=settings.AutocorrelationAnalysis.acf_kwargs,
+                target_col=target_col,
+                forecast_horizon=self.FORECAST_HORIZON,
+            )
+
+            # Find hourly lags (based on ac analysis) & add to predictors
+            hourly_lags = [-x[0] for x in ac_analysis["general"]["acf"]]
+
+            # Find backup lag reference (difference between last forecast date
+            # and last date available in the dataset)
+            _last_date = _dataset.dropna().index[-1]
+            lag_ref = -int((self.forecast_range[-1] - _last_date).total_seconds() / 3600)  # noqa
+            hourly_lags.extend([lag_ref])
+            # Remove duplicate lags (e.g., added by backup lag) but keep order:
+            unique_lags = list(dict.fromkeys(hourly_lags))
+            # Find hourly lags (based on ac analysis) & add to predictors
+            lag_vars = {target_col: [('hour', list(unique_lags))]}
+            lag_name_prefix = f"self__{target_resource_id}__"
+            feat_df = construct_inputs_from_lags(
+                df=_dataset,
+                inputs=feat_df,
+                lag_vars=lag_vars,
+                lag_tz=self.MARKET_TZ,
+                infer_dst_lags=False,
+                lag_name_prefix=lag_name_prefix
+            )
+
+            # Check, for the forecast range, which of the ACF lags are valid
+            check_nulls = feat_df.loc[self.forecast_range].isnull().any()  # noqa
+            # get name (index) of columns with information available
+            valid_lags = check_nulls[check_nulls == False].index
+            if len(valid_lags) == 0:
+                feat_df = feat_df[[]]  # empty dataframe
+            else:
+                feat_df = feat_df[valid_lags]  # select valid lags
+                feat_df = feat_df.dropna()
+
         logger.debug("Creating buyer features ... Ok!")
         return feat_df
 
     def __process_features(self, market_x, buyer_x, buyer_y):
         launch_time_ = self.launch_time.strftime("%Y-%m-%d %H:%M:%S.%f")
         # Join market and buyer features:
-        features_ = market_x.join(buyer_x)
+        features_ = market_x.join(buyer_x, how="right")
         # Prepare train dataset:
         train_features = features_[:launch_time_].join(buyer_y).dropna(subset=["target"])  # noqa
         # Remove "target" variable from train dataset:
@@ -471,10 +559,6 @@ class MarketClass:
             buyer_x=buyer_x,
             buyer_y=buyer_y,
         )
-
-        # todo: avaliar test_features e decidir que sellers têm direito a
-        #  participar no mercado para este buyer remover sellers com + do
-        #  que 3 NaN -> com menos do que 3, interpolar
 
         # -- Convert train data to numpy arrays (speed up)
         train_features_name = list(train_features.columns)
@@ -645,6 +729,13 @@ class MarketClass:
             has_to_receive = resource_data.has_to_receive
             self.users_data[user_id].sum_revenue(has_to_receive)
 
+    def set_forecast_range(self):
+        self.forecast_start = self.launch_time
+        self.forecast_end = self.launch_time + pd.DateOffset(hours=self.FORECAST_HORIZON)  # noqa
+        self.forecast_range = pd.date_range(start=self.forecast_start,
+                                            end=self.forecast_end,
+                                            freq='H', tz=self.MARKET_TZ)
+
     def define_payments_and_forecasts(self):
         """
         Run current market session
@@ -673,10 +764,15 @@ class MarketClass:
             logger.error(e_msg)
             raise NoMarketUsersExceptions(e_msg)
 
+        # -- 0. Define forecast range based on launch time & horizon:
+        self.set_forecast_range()
+
         # -- 1. Create market dataset (aggregate sellers measurements data)
         market_df = self.__create_market_dataset()
-        # -- 2. Create market features (NaNs filled with Zeros)
+
+        # -- 2. Create market features
         market_x_full = self.__create_market_features(market_df=market_df)
+
         # -- 3. Process payment & forecasts for each buyer resource
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(
@@ -695,16 +791,6 @@ class MarketClass:
                 resource_id=out["resource_id"],
                 value=out["market_fee"]
             )
-
-        # # -- 4. Calculate Revenue per Seller Resource
-        # self.sellers_revenue()
-        #
-        # # -- 5. Sum Payment / Revenue per User:
-        # # todo: verificar se é necessário metodo `payment_and_revenue_per_user`
-        # # self.payment_and_revenue_per_user()
-        #
-        # # -- 6. Save session results
-        # self.save_session_results()
 
     def update_market_price(self):
         logger.info("-" * 70)
