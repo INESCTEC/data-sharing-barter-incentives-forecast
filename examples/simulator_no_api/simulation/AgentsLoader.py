@@ -4,6 +4,8 @@ import datetime as dt
 
 import pandas as pd
 
+from loguru import logger
+
 
 class AgentsLoader:
     """
@@ -45,12 +47,19 @@ class AgentsLoader:
 
         # dataset path:
         dataset_path = os.path.join(self.data_path, f"{data_type}.csv")
-        dataset = pd.read_csv(dataset_path, sep=self.delimiter)
-        dataset.drop_duplicates("datetime", inplace=True)
-        dataset.loc[:, 'datetime'] = pd.to_datetime(
-            dataset["datetime"],
-            format=self.datetime_fmt).dt.tz_localize("UTC")
-        dataset.set_index("datetime", inplace=True)
+        if os.path.exists(dataset_path):
+            dataset = pd.read_csv(dataset_path, sep=self.delimiter)
+            dataset.drop_duplicates("datetime", inplace=True)
+            dataset.loc[:, 'datetime'] = pd.to_datetime(
+                dataset["datetime"],
+                format=self.datetime_fmt).dt.tz_localize("UTC")
+            dataset.set_index("datetime", inplace=True)
+            dataset = dataset.resample("1H").mean()
+            dataset.dropna(how="all", inplace=True)
+        else:
+            logger.warning(f"File {dataset_path} not found. "
+                           f"Creating empty {data_type} dataset.")
+            dataset = pd.DataFrame()
         return dataset
 
     def load_user_resources(self):
@@ -94,6 +103,10 @@ class AgentsLoader:
         self.measurements = {}
         end_date = self.launch_time.strftime("%Y-%m-%d %H:%M:%S.%f")
         dataset = self.read_dataset(data_type="measurements")
+
+        if dataset.empty:
+            exit("Empty measurements dataset. Cannot continue.")
+
         # make sure we only load data until market launch (historical)
         _ts = dataset[:end_date].index
 
@@ -111,16 +124,23 @@ class AgentsLoader:
         self.features = {}
         end_date = (self.launch_time + pd.DateOffset(days=3)).strftime("%Y-%m-%d %H:%M:%S.%f")
         dataset = self.read_dataset(data_type="features")
-        # make sure we only load a max of 3 days ahead
-        _ts = dataset[:end_date].index
 
         for feature_id in self.features_list:
-            _v = dataset.loc[:end_date, f"{feature_id}"].dropna().values
-            self.features[feature_id] = pd.DataFrame({
-                "datetime": _ts,
-                "value": _v,
-                "variable": [f"feature_{feature_id}"] * len(_ts)
-            }).set_index("datetime")
+            feature_df = dataset.loc[:end_date, f"{feature_id}"].dropna()
+            if feature_df.empty:
+                self.features[feature_id] = pd.DataFrame({
+                    "datetime": [],
+                    "value": [],
+                    "variable": []
+                }).set_index("datetime")
+            else:
+                _ts = feature_df.index
+                _v = feature_df.values
+                self.features[feature_id] = pd.DataFrame({
+                    "datetime": _ts,
+                    "value": _v,
+                    "variable": [f"feature_{feature_id}"] * len(_ts)
+                }).set_index("datetime")
         return self
 
     def load_datasets(self):
