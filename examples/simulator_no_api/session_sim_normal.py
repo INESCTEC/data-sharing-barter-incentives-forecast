@@ -29,6 +29,7 @@ if __name__ == '__main__':
         "dataset_path": "files/datasets/linear_relevant_irrelevant_2_5",
         "report_name_suffix": "spearman",
         "auto_feature_selection": True,
+        "auto_feature_engineering": True,
         "bids_scenario": "scenario_1",
         "nr_sessions": 10,
         "first_lt_utc": "2020-05-01T10:00:00Z",
@@ -95,7 +96,7 @@ if __name__ == '__main__':
         # Run Market Session
         # ################################
         mc = MarketClass(n_jobs=N_JOBS,
-                         auto_feature_engineering=False,
+                         auto_feature_engineering=manager.AUTO_FEATURE_ENGINEERING,  # noqa
                          auto_feature_selection=manager.AUTO_FEATURE_SELECTION)
         # -- Initialize market session:
         mc.init_session(
