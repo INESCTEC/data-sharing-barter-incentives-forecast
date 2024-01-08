@@ -96,51 +96,53 @@ if (path_report) and (path_dataset) and (path_report_fs) and (path_dataset_fs):
             fig = plot_boxplot(df_melt, "resource_id", "performance_error", "resource_id", "Boxplot MAE")
             st.plotly_chart(fig, theme="streamlit")
 
-    # Revenue-Coefficients matching
-    with st.expander('Sellers Revenue-Coefficients Matching'):
-        from util.util_revenue import revenue_avg, revenue_session
+    try:
+        # Revenue-Coefficients matching
+        with st.expander('Sellers Revenue-Coefficients Matching'):
+            from util.util_revenue import revenue_avg, revenue_session
 
-        st.subheader('Sellers Revenue-Coefficients Matching')
-        col1, col2 = st.columns(2)
+            st.subheader('Sellers Revenue-Coefficients Matching')
+            col1, col2 = st.columns(2)
 
-        with col1:
-            st.subheader('Standard')
+            with col1:
+                st.subheader('Standard')
 
-            path_coefs = os.path.join(path_dataset, 'new_coefs.csv')
-            path_sellers = os.path.join(path_report, 'sellers.csv')
+                path_coefs = os.path.join(path_dataset, 'new_coefs.csv')
+                path_sellers = os.path.join(path_report, 'sellers.csv')
 
-            df_revenue_avg = revenue_avg(path_coefs, path_sellers)
-            df_revenue_session = revenue_session(path_coefs, path_sellers)
+                df_revenue_avg = revenue_avg(path_coefs, path_sellers)
+                df_revenue_session = revenue_session(path_coefs, path_sellers)
 
-            # plots
-            fig = plot_session_stack_bar(df_revenue_session, "session_id", "difference", "resource_id", "Coefs-Revenue Difference per session")
-            st.plotly_chart(fig, theme="streamlit")
+                # plots
+                fig = plot_session_stack_bar(df_revenue_session, "session_id", "difference", "resource_id", "Coefs-Revenue Difference per session")
+                st.plotly_chart(fig, theme="streamlit")
 
-            fig = plot_boxplot(df_revenue_session,"resource_id", "difference", "resource_id", "Coefs-Revenue Difference")
-            st.plotly_chart(fig, theme="streamlit")
+                fig = plot_boxplot(df_revenue_session,"resource_id", "difference", "resource_id", "Coefs-Revenue Difference")
+                st.plotly_chart(fig, theme="streamlit")
 
-            fig = plot_avg_barline(df_revenue_avg, "resource_id", "norm_to_receive", "norm_coefs", "difference", "Coefs-Revenue Difference")
-            st.plotly_chart(fig, theme="streamlit")
+                fig = plot_avg_barline(df_revenue_avg, "resource_id", "norm_to_receive", "norm_coefs", "difference", "Coefs-Revenue Difference")
+                st.plotly_chart(fig, theme="streamlit")
 
-        with col2:
-            st.subheader('Feature Selection')
+            with col2:
+                st.subheader('Feature Selection')
 
-            path_coefs = os.path.join(path_dataset_fs, 'new_coefs.csv')
-            path_sellers = os.path.join(path_report_fs, 'sellers.csv')
+                path_coefs = os.path.join(path_dataset_fs, 'new_coefs.csv')
+                path_sellers = os.path.join(path_report_fs, 'sellers.csv')
 
-            df_revenue_avg = revenue_avg(path_coefs, path_sellers)
-            df_revenue_session = revenue_session(path_coefs, path_sellers)
+                df_revenue_avg = revenue_avg(path_coefs, path_sellers)
+                df_revenue_session = revenue_session(path_coefs, path_sellers)
 
-            # plots
-            fig = plot_session_stack_bar(df_revenue_session, "session_id", "difference", "resource_id", "Coefs-Revenue Difference per session")
-            st.plotly_chart(fig, theme="streamlit")
+                # plots
+                fig = plot_session_stack_bar(df_revenue_session, "session_id", "difference", "resource_id", "Coefs-Revenue Difference per session")
+                st.plotly_chart(fig, theme="streamlit")
 
-            fig = plot_boxplot(df_revenue_session,"resource_id", "difference", "resource_id", "Coefs-Revenue Difference")
-            st.plotly_chart(fig, theme="streamlit")
+                fig = plot_boxplot(df_revenue_session,"resource_id", "difference", "resource_id", "Coefs-Revenue Difference")
+                st.plotly_chart(fig, theme="streamlit")
 
-            fig = plot_avg_barline(df_revenue_avg, "resource_id", "norm_to_receive", "norm_coefs", "difference", "Coefs-Revenue Difference")
-            st.plotly_chart(fig, theme="streamlit")
-
+                fig = plot_avg_barline(df_revenue_avg, "resource_id", "norm_to_receive", "norm_coefs", "difference", "Coefs-Revenue Difference")
+                st.plotly_chart(fig, theme="streamlit")
+    except FileNotFoundError:
+        pass
 
     # Payment-Gain matching
     with st.expander('Buyers Payment-Gain Matching'):
