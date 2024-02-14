@@ -4,6 +4,8 @@ import datetime as dt
 
 import pandas as pd
 
+from loguru import logger
+
 
 class AgentsLoader:
     """
@@ -11,38 +13,54 @@ class AgentsLoader:
     - Reading CSV data
 
     """
-    def __init__(self, launch_time, market_session, data_path, bids_scenario, datetime_fmt="%Y-%m-%d %H:%M"):
+    def __init__(self, launch_time, market_session, data_path, bids_scenario,
+                 delimiter=',', datetime_fmt="%Y-%m-%d %H:%M"):
         self.launch_time = launch_time
         self.market_session = market_session
         self.data_path = None
-        self.dataset = None
         self.users_resources = None
+        self.users_features = None
         self.measurements = {}
+        self.features = {}
+        self.users_list = None
         self.resource_list = None
+        self.measurements_list = None
+        self.features_list = None
         self.bids_per_resource = None
         self.data_path = data_path
         self.bids_scenario = bids_scenario
         self.datetime_fmt = datetime_fmt
+        self.delimiter = delimiter
 
-    def read_data(self, path: str, sep: str = ','):
+    def read_dataset(self, data_type: str):
         """
         Read CSV data. Drops duplicates based on datetime and initializes
          a 'self.dataset' class attribute containing the loaded timeseries
 
-        :param path:
+        :param data_type:
         :param sep:
         :return:
         """
-        self.data_path = path
+        if data_type not in ["measurements", "features"]:
+            raise ValueError("data_type must be either "
+                             "'measurements' or 'features'")
+
         # dataset path:
-        dataset_path = os.path.join(path, "dataset.csv")
-        self.dataset = pd.read_csv(dataset_path, sep=sep)
-        self.dataset.drop_duplicates("datetime", inplace=True)
-        self.dataset.loc[:, 'datetime'] = pd.to_datetime(
-            self.dataset["datetime"],
-            format=self.datetime_fmt).dt.tz_localize("UTC")
-        self.dataset.set_index("datetime", inplace=True)
-        return self
+        dataset_path = os.path.join(self.data_path, f"{data_type}.csv")
+        if os.path.exists(dataset_path):
+            dataset = pd.read_csv(dataset_path, sep=self.delimiter)
+            dataset.drop_duplicates("datetime", inplace=True)
+            dataset.loc[:, 'datetime'] = pd.to_datetime(
+                dataset["datetime"],
+                format=self.datetime_fmt).dt.tz_localize("UTC")
+            dataset.set_index("datetime", inplace=True)
+            dataset = dataset.resample("1H").mean()
+            dataset.dropna(how="all", inplace=True)
+        else:
+            logger.warning(f"File {dataset_path} not found. "
+                           f"Creating empty {data_type} dataset.")
+            dataset = pd.DataFrame()
+        return dataset
 
     def load_user_resources(self):
         """
@@ -50,10 +68,17 @@ class AgentsLoader:
         Initializes 'self.resource_list' class attribute with this information.
         """
         # user resources path for that dataset:
-        user_res_path = os.path.join(self.data_path, "user_resources.json")
+        user_res_path = os.path.join(self.data_path, "users_resources.json")
         with open(user_res_path, "r") as f:
             self.users_resources = json.load(f)
-        self.resource_list = [x["resource_id"] for x in self.users_resources]
+
+        self.users_list = [x["user"] for x in self.users_resources]
+        self.resource_list = [x["id"] for x in self.users_resources]
+        self.measurements_list = [x["id"] for x in self.users_resources if x["type"] == "measurements"]
+        self.features_list = [x["id"] for x in self.users_resources if x["type"] == "features"]
+
+        if len(set(self.resource_list)) != len(self.resource_list):
+            raise AttributeError("There are repeated resource id's in user_resources.json.")
 
         return self
 
@@ -77,23 +102,55 @@ class AgentsLoader:
     def load_measurements(self):
         self.measurements = {}
         end_date = self.launch_time.strftime("%Y-%m-%d %H:%M:%S.%f")
-        _ts = self.dataset[:end_date].index
+        dataset = self.read_dataset(data_type="measurements")
 
-        for resource_id in self.resource_list:
-            _v = self.dataset.loc[:end_date, f"{resource_id}"].values
+        if dataset.empty:
+            exit("Empty measurements dataset. Cannot continue.")
+
+        # make sure we only load data until market launch (historical)
+        _ts = dataset[:end_date].index
+
+        for resource_id in self.measurements_list:
+            _v = dataset.loc[:end_date, f"{resource_id}"].dropna().values
             self.measurements[resource_id] = pd.DataFrame({
                 "datetime": _ts,
                 "value": _v,
                 "variable": ["measurements"] * len(_ts),
                 "units": ["w"] * len(_ts),
             }).set_index("datetime")
+        return self
 
-        return self.measurements
+    def load_features(self):
+        self.features = {}
+        end_date = (self.launch_time + pd.DateOffset(days=3)).strftime("%Y-%m-%d %H:%M:%S.%f")
+        dataset = self.read_dataset(data_type="features")
+
+        for feature_id in self.features_list:
+            feature_df = dataset.loc[:end_date, f"{feature_id}"].dropna()
+            if feature_df.empty:
+                self.features[feature_id] = pd.DataFrame({
+                    "datetime": [],
+                    "value": [],
+                    "variable": []
+                }).set_index("datetime")
+            else:
+                _ts = feature_df.index
+                _v = feature_df.values
+                self.features[feature_id] = pd.DataFrame({
+                    "datetime": _ts,
+                    "value": _v,
+                    "variable": [f"feature_{feature_id}"] * len(_ts)
+                }).set_index("datetime")
+        return self
 
     def load_datasets(self):
-        self.read_data(path=self.data_path)  # Read csv files
-        self.load_user_resources()  # Load user resources (metadata)
-        self.load_bids(scenario=self.bids_scenario)  # load pre-defined bids
+        # Load user resources (metadata)
+        self.load_user_resources()
+        # load pre-defined bids
+        self.load_bids(scenario=self.bids_scenario)
         # Read measurements data and assign to each user resource
         self.load_measurements()
+        # Load features data and assign to each user resource
+        self.load_features()
+
         return self

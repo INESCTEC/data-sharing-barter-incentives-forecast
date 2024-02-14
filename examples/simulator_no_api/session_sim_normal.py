@@ -2,6 +2,7 @@
 import gc
 import sys
 
+from time import time
 from copy import deepcopy
 from loguru import logger
 
@@ -20,17 +21,21 @@ if __name__ == '__main__':
 
     # -- Setup logger (removes existing logger + adds new sys logger):
     logger.remove()
-    logger.add(sys.stderr, level="INFO")
+    logger.add(sys.stderr, level="DEBUG")
 
     # Set base simulation parameters:
-    N_JOBS = -1
+    N_JOBS = 1
     simulation_params = {
-        "dataset_path": "files/datasets/example_1",
+        "dataset_path": "files/datasets/linear_relevant_irrelevant_2_5",
+        "report_name_suffix": "spearman",
+        "auto_feature_selection": True,
+        "auto_feature_engineering": True,
         "bids_scenario": "scenario_1",
         "nr_sessions": 10,
         "first_lt_utc": "2020-05-01T10:00:00Z",
         "session_freq": 1,
         "datetime_fmt": "%Y-%m-%d %H:%M:%S",
+        "delimiter": ","
     }
 
     # Load Session Configs:
@@ -45,6 +50,7 @@ if __name__ == '__main__':
         logger.info("/" * 79)
         logger.info("\\" * 79)
         market_lt = market_lt.to_pydatetime()
+        general_t0 = time()
 
         # #########################################
         # Create Mock Data Session
@@ -68,11 +74,13 @@ if __name__ == '__main__':
             market_session=session_id,
             data_path=manager.DATASET_PATH,
             bids_scenario=manager.BIDS_SCENARIO,
-            datetime_fmt=manager.DATETIME_FMT
+            datetime_fmt=manager.DATETIME_FMT,
+            delimiter=manager.DATA_DELIMITER
         ).load_datasets()
 
         # Session data:
         measurements = ag.measurements
+        features = ag.features
         session_data = sg.session_data
         price_weights = sg.price_weights
         bids_per_resource = ag.bids_per_resource
@@ -87,7 +95,9 @@ if __name__ == '__main__':
         # ################################
         # Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=N_JOBS)
+        mc = MarketClass(n_jobs=N_JOBS,
+                         auto_feature_engineering=manager.AUTO_FEATURE_ENGINEERING,  # noqa
+                         auto_feature_selection=manager.AUTO_FEATURE_SELECTION)
         # -- Initialize market session:
         mc.init_session(
             session_data=session_data,
@@ -101,6 +111,7 @@ if __name__ == '__main__':
         mc.load_resources_bids(bids=bids_per_resource)
         # -- Load resources measurements data:
         mc.load_resources_measurements(measurements=measurements)
+        mc.load_resources_features(features=features)
         # -- Run market session:
         mc.define_payments_and_forecasts()
         # -- Display session results
@@ -128,7 +139,8 @@ if __name__ == '__main__':
         )
 
         # Save reports to csv:
-        manager.reports_to_csv()
+        elapsed_time = time() - general_t0
+        manager.reports_to_csv(sess_elapsed_time=elapsed_time)
 
         # Update variables for next session
         CURRENT_MARKET_PRICE = mc.mkt_sess.next_market_price

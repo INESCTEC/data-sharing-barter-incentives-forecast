@@ -1,5 +1,10 @@
+# flake8: noqa
+
 import os
 import numpy as np
+
+from dataclasses import dataclass
+
 
 # Wallet Configs:
 WALLET_NAME = os.getenv('WALLET_NAME', 'wallet')
@@ -12,8 +17,8 @@ WALLET_BACKUP_PATH = os.path.join(os.getenv('WALLET_BACKUP_PATH', 'files'), 'bac
 
 
 # REST Configs:
-RESTAPI_HOST = os.environ['RESTAPI_HOST']
-RESTAPI_PORT = os.environ['RESTAPI_PORT']
+RESTAPI_HOST = os.environ.get('RESTAPI_HOST', "")
+RESTAPI_PORT = os.environ.get('RESTAPI_PORT', "")
 N_REQUEST_RETRIES = os.environ.get('N_REQUEST_RETRIES', 3)
 
 # IOTA Configs:
@@ -23,9 +28,9 @@ IOTA_NODE_URL = os.getenv('IOTA_NODE_URL', 'https://api.testnet.shimmer.network'
 
 # Market Configs:
 RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')
-MARKET_EMAIL = os.environ['MARKET_EMAIL']
-MARKET_PASSWORD = os.environ['MARKET_PASSWORD']
-N_JOBS = int(os.environ["N_JOBS"])
+MARKET_EMAIL = os.environ.get('MARKET_EMAIL', "")
+MARKET_PASSWORD = os.environ.get('MARKET_PASSWORD', "")
+N_JOBS = int(os.environ.get("N_JOBS", 1))
 
 # Database configs:
 DATABASES = {
@@ -53,3 +58,41 @@ class FirstSessionConfigs:
     weights_p = [1.] * len(possible_p)
     market_price = possible_p.mean()  # select the mean of possble prices
     market_price = (market_price // epsilon + 1) * (epsilon)
+
+
+@dataclass(frozen=True)
+class FeaturePreprocess:
+    feature_selection = dict(
+        seed=42,
+
+        # General Setting for Feature Selection
+        method_fs='Spearman',  # 'mRMR', 'Pearson', 'Spearman', 'MI', 'Partial-Pearson', 'Partial-Spearman',   # noqa
+
+        # selection method
+        type_selection='thresh',
+        percentile=99,
+        threshold=0.00001,
+
+        # statistical-based filters
+        significance_level=0.1,
+
+        # mutual information params
+        nr_neighbors=5,
+
+        # results
+        path_to_save_fs='./results_feature_selection/',
+        dir_fs='feature_selection',
+        filename_scores='scores.csv',
+        filename_fs='feature_selected.csv',
+        format='json',
+    )
+
+
+@dataclass(frozen=True)
+class AutocorrelationAnalysis:
+    # Auto-correlation analysis configs:
+    acf_kwargs = {
+        "nlags": 504,
+        "threshold": 0.3,
+        "select_top": 2
+    }

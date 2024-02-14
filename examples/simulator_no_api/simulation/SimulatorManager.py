@@ -24,11 +24,15 @@ class SimulatorManager:
                  nr_sessions,
                  first_lt_utc,
                  session_freq,
+                 delimiter=",",
                  datetime_fmt="%Y-%m-%d %H:%M",
                  price_up_data_path=None,
                  price_down_data_path=None,
                  price_spot_data_path=None,
                  agents_area_map_path=None,
+                 report_name_suffix=None,
+                 auto_feature_selection=False,
+                 auto_feature_engineering=False,
                  ):
 
         # Simulator params:
@@ -44,6 +48,10 @@ class SimulatorManager:
         self.PRICE_SPOT_DATA_PATH = price_spot_data_path
         self.AGENTS_AREA_MAP_PATH = agents_area_map_path
         self.DATETIME_FMT = datetime_fmt
+        self.DATA_DELIMITER = delimiter
+        self.AUTO_FEATURE_SELECTION = auto_feature_selection
+        self.AUTO_FEATURE_ENGINEERING = auto_feature_engineering
+        self.REPORT_NAME_SUFFIX = report_name_suffix
 
         # parse first launch time:
         self.first_lt_utc = dt.datetime.strptime(first_lt_utc, "%Y-%m-%dT%H:%M:%SZ") # noqa
@@ -56,10 +64,17 @@ class SimulatorManager:
 
     def __create_reports_dir(self):
         current_time = dt.datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        d_ = os.path.dirname
-        self.REPORTS_PATH = os.path.join(d_(d_(__file__)),
-                                         "files", "reports", self.DATASET_NAME,
-                                         current_time)
+        _d = os.path.dirname
+        _fs = "autofs" if self.AUTO_FEATURE_SELECTION else "noautofs"
+        report_dirname = f"{current_time}_{_fs}"
+
+        if self.REPORT_NAME_SUFFIX is not None:
+            report_dirname = f"{report_dirname}_{self.REPORT_NAME_SUFFIX}"
+
+        self.REPORTS_PATH = os.path.join(_d(_d(__file__)),
+                                         "files", "reports",
+                                         self.DATASET_NAME,
+                                         report_dirname)
         os.makedirs(self.REPORTS_PATH, exist_ok=True)
 
     def __create_logger(self):
@@ -96,6 +111,7 @@ class SimulatorManager:
                                        'date',
                                        'status',
                                        'launch_ts',
+                                       'elapsed_time',
                                        'next_weights_p',
                                        'prev_weights_p']
         self.buyers_results_fields = ['session_id',
@@ -144,7 +160,7 @@ class SimulatorManager:
         # Update market report with this session details:
         self.market_session_report[session_id] = sess_dict
 
-    def reports_to_csv(self):
+    def reports_to_csv(self, sess_elapsed_time):
         data_details = []
         data_buyers = []
         data_sellers = []
@@ -156,6 +172,7 @@ class SimulatorManager:
                 continue
             # Session details:
             session_details = session_data["session_details"]
+            session_details["elapsed_time"] = sess_elapsed_time
             data_details.append(session_details)
             # Buyers results:
             buyers_results = deepcopy(session_data["buyers_results"])
