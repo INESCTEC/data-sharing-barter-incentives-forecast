@@ -391,7 +391,7 @@ class MarketClass:
         # Check which of the valid cols have no NaN in forecast horizon
         check_nulls = market_x_full[_cols].loc[self.forecast_range].isnull().any()  # noqa
         # get name (index) of columns with information available
-        valid_cols = check_nulls[check_nulls is False].index
+        valid_cols = check_nulls[check_nulls == False].index
         return market_x_full[valid_cols]
 
     def __create_buyer_features(self,
@@ -451,7 +451,7 @@ class MarketClass:
             # Check, for the forecast range, which of the ACF lags are valid
             check_nulls = feat_df.loc[self.forecast_range].isnull().any()  # noqa
             # get name (index) of columns with information available
-            valid_lags = check_nulls[check_nulls is False].index
+            valid_lags = check_nulls[check_nulls == False].index
             if len(valid_lags) == 0:
                 feat_df = feat_df[[]]  # empty dataframe
             else:

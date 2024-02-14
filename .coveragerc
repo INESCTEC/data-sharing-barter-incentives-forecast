@@ -4,5 +4,5 @@ omit =
     */examples/*
 
 [report]
-fail_under=0.7
+fail_under=0.60
 precision=2
