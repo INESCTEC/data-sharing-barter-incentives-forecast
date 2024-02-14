@@ -30,10 +30,10 @@ def construct_lagged(df, target, lag_type, lag, lag_tz, infer_dst_lags):
         idx = idx + pd.DateOffset(weeks=lag)
     elif lag_type == 'month':
         idx = idx + pd.DateOffset(months=lag)
-    elif lag_type == 'Min':
+    elif lag_type == 'minute':
         idx = idx + pd.DateOffset(minutes=lag)
 
-    if (lag_tz != "UTC") and (infer_dst_lags is True):
+    if (lag_tz != "UTC") and infer_dst_lags:
         # if original index frequency is lower than hourly, forces freq_
         # multiplier to hourly
         freq_multiplier = idx_original.freqstr
@@ -45,13 +45,28 @@ def construct_lagged(df, target, lag_type, lag, lag_tz, infer_dst_lags):
                 "hourly frequency.")
 
         # Fix awareness on lags:
-        dst_correction = (idx_original.tz_convert(lag_tz).hour -
-                          idx.tz_convert(lag_tz).hour).values
-        dst_correction = np.where(dst_correction == -23, 1, dst_correction)
-        dst_correction = np.where(dst_correction == 23, -1, dst_correction)
-        # todo: Adapt code for different frequencies
-        dst_correction = dst_correction * pd.Timedelta("1H")
-        idx = idx + dst_correction
+        if lag_type == "hour":
+            # Get difference (in hours) between new index (lag) and original
+            # both converted to local tz. Note that we needed to remove tz
+            # (after conversion) as, in this pandas version, the difference is
+            # always calculated in UTC (despite the timestamps being TZ aware)
+            # leading to no correction needed
+            idx_original_local_tz = idx_original.tz_convert(lag_tz).tz_localize(None)  # noqa
+            idx_local_tz = idx.tz_convert(lag_tz).tz_localize(None)
+            dst_correction = ((idx_original_local_tz - idx_local_tz).total_seconds() / 3600).astype(int).values  # noqa
+            dst_correction = dst_correction + lag
+            dst_correction = dst_correction * pd.Timedelta("1H")
+            idx = idx + dst_correction
+        elif lag_type in ["day", "week", "month"]:
+            # If it is not a hourly lag, we just need to check when the hour
+            # difference is -23 or 23 (due to DST) and correct the lag
+            dst_correction = (idx_original.tz_convert(lag_tz).hour - idx.tz_convert(lag_tz).hour).values  # noqa
+            dst_correction = np.where(dst_correction == -23, 1, dst_correction)
+            dst_correction = np.where(dst_correction == 23, -1, dst_correction)
+            dst_correction = dst_correction * pd.Timedelta("1H")
+            idx = idx + dst_correction
+        else:
+            logger.warning(f"No DST correction is made for {lag_type} lags.")
 
     try:
         return df.reindex(idx)[target].values
