@@ -57,29 +57,37 @@ class FirstSessionConfigs:
 
 @dataclass(frozen=True)
 class FeaturePreprocess:
+    feature_selection = dict(
+        seed=42,
 
-    feature_selection = dict(seed=42,
+        # General Setting for Feature Selection
+        method_fs='Spearman',  # 'mRMR', 'Pearson', 'Spearman', 'MI', 'Partial-Pearson', 'Partial-Spearman',   # noqa
 
-                            # General Setting for Feature Selection
-                            method_fs='Spearman',  # 'mRMR', 'Pearson', 'Spearman', 'MI', 'Partial-Pearson', 'Partial-Spearman',   # noqa
+        # selection method
+        type_selection='thresh',
+        percentile=99,
+        threshold=0.00001,
 
-                            # selection method
-                            type_selection='thresh',
-                            percentile=99,
-                            threshold=0.00001,
+        # statistical-based filters
+        significance_level=0.1,
 
-                            # statistical-based filters
-                            significance_level=0.1,
+        # mutual information params
+        nr_neighbors=5,
 
-                            # mutual information params
-                            nr_neighbors=5,
-
-                            # results
-                            path_to_save_fs='./results_feature_selection/',
-                            dir_fs='feature_selection',
-                            filename_scores='scores.csv',
-                            filename_fs='feature_selected.csv',
-                            format='json',
-                            )
+        # results
+        path_to_save_fs='./results_feature_selection/',
+        dir_fs='feature_selection',
+        filename_scores='scores.csv',
+        filename_fs='feature_selected.csv',
+        format='json',
+    )
 
 
+@dataclass(frozen=True)
+class AutocorrelationAnalysis:
+    # Auto-correlation analysis configs:
+    acf_kwargs = {
+        "nlags": 504,
+        "threshold": 0.3,
+        "select_top": 2
+    }

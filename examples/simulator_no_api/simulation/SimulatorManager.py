@@ -32,6 +32,7 @@ class SimulatorManager:
                  agents_area_map_path=None,
                  report_name_suffix=None,
                  auto_feature_selection=False,
+                 auto_feature_engineering=False,
                  ):
 
         # Simulator params:
@@ -49,6 +50,7 @@ class SimulatorManager:
         self.DATETIME_FMT = datetime_fmt
         self.DATA_DELIMITER = delimiter
         self.AUTO_FEATURE_SELECTION = auto_feature_selection
+        self.AUTO_FEATURE_ENGINEERING = auto_feature_engineering
         self.REPORT_NAME_SUFFIX = report_name_suffix
 
         # parse first launch time:

@@ -299,7 +299,10 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=settings.N_JOBS, enable_db_uploads=True)
+        mc = MarketClass(n_jobs=settings.N_JOBS,
+                         auto_feature_selection=True,
+                         auto_feature_engineering=True,
+                         enable_db_uploads=True)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
