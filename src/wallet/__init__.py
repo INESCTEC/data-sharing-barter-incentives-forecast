@@ -1,2 +1,0 @@
-from .WalletController import WalletController
-from .TangleController import TangleController

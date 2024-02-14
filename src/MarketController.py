@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from conf import settings
 from .api import Controller
-from .wallet import WalletController, TangleController
+from .wallet.WalletController import WalletController
 from .market import MarketClass
 from .market.helpers.api_helpers import (
     get_session_data,
@@ -22,6 +22,7 @@ from .market.helpers.units_helpers import (
     convert_buyers_bids_to_mi,
 )
 
+from payment.PaymentGateway.IOTAPayment.IOTAClientController import IOTAClientController
 from .api.exception.APIException import *
 from .market.exception.ControllerException import *
 from .wallet.exception.TangleException import *
@@ -33,7 +34,7 @@ class MarketController:
         # Market Wallet Controller:
         self.wallet = WalletController()
         # Tangle Controller:
-        self.tangle = TangleController()
+        self.tangle = IOTAClientController(node_url=[settings.IOTA_NODE_URL])
         # Market API Controller:
         self.api = Controller()
         # todo: adicionar re-log caso token expire
@@ -210,22 +211,17 @@ class MarketController:
                 continue
 
             try:
-                valid_in_tangle = self.tangle.validate_message(
-                    output_type="single",
-                    message_id=b["tangle_msg_id"],
-                    output_address=market_wallet_address,
-                    expected_amount=b["max_payment"]
-                )
+                valid_in_tangle = self.tangle.validate_transaction_id(transaction_id=b["tangle_msg_id"],
+                                                                      address=market_wallet_address,
+                                                                      amount=b["max_payment"])
+
                 if valid_in_tangle:
-                    rsp = self.api.post_validate_bid(
-                        tangle_msg_id=b["tangle_msg_id"]
-                    )
-                    logger.info(f"Validating bid {b['id']} - "
-                                f"{b['tangle_msg_id']} ... Ok!")
+                    rsp = self.api.post_validate_bid(tangle_msg_id=b["tangle_msg_id"])
+                    logger.info(f"Validating bid {b['id']} - {b['tangle_msg_id']} ... Ok!")
                     logger.debug(rsp)
-            except Exception:
-                logger.exception(f"Validating bid {b['id']} - "
-                                 f"{b['tangle_msg_id']} ... Failed!")
+            except Exception as e:
+                logger.error(str(e))
+                logger.exception(f"Validating bid {b['id']} - {b['tangle_msg_id']} ... Failed!")
 
     def close_market_session(self):
         """
