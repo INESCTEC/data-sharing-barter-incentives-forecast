@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv('.env')
 
 from conf import settings
-from src.wallet import WalletController
+from src.wallet.WalletController import WalletController
 from src.MarketController import MarketController
 from src.market.util.custom_exceptions import NoMarketBuyersExceptions
 
@@ -74,7 +74,7 @@ def installation_menu():
         wallet = WalletController()
         wallet.create_wallet(store_mnemonic=True)
         wallet.create_account()
-        address = wallet.get_address()["address"]["inner"]
+        address = wallet.get_address()
         print("Market Wallet address (use it to transfer tokens):")
         print(address)
 
@@ -85,8 +85,8 @@ def installation_menu():
 def market_configuration():
     try:
         market = MarketController()
-    except Exception:
-        logger.exception("Unable to login to the platform")
+    except Exception as e:
+        logger.exception(f"Unable to login to the platform: {e}")
         input("Press any key to return to main menu.")
         return
 
@@ -270,7 +270,7 @@ def wallet_menu():
 
         if choice == "1":
             try:
-                address = wallet.get_address()["address"]["inner"]
+                address = wallet.get_address()
                 print(f"Wallet Address: {address}")
             except Exception as ex:
                 logger.exception(repr(ex))
@@ -288,7 +288,7 @@ def wallet_menu():
                                "(use 'FB' keyword for full balance "
                                "transfer): ")
                 if amount.lower() == "fb":
-                    amount = wallet.get_balance()["available"]
+                    amount = wallet.get_balance()['baseCoin']['available']
                 else:
                     amount = int(amount)
                 out_address = input("Enter output address: ")
@@ -324,7 +324,7 @@ def _sep():
 
 
 if __name__ == '__main__':
-    wallet_path = os.path.join(settings.WALLET_STORAGE_PATH, "wallet-db")
+    wallet_path = os.path.join(settings.WALLET_STORAGE_PATH)
     if not os.path.exists(wallet_path):
         main_no_installation()
     main()

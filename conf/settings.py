@@ -2,10 +2,14 @@ import os
 import numpy as np
 
 # Wallet Configs:
-WALLET_NAME = os.environ['WALLET_NAME']
-STRONG_WALLET_KEY = os.environ['STRONG_WALLET_KEY']
-WALLET_STORAGE_PATH = os.environ['STORAGE_PATH']
-MINIMUM_WITHDRAW_AMOUNT = int(os.environ['MINIMUM_WITHDRAW_AMOUNT'])
+WALLET_NAME = os.getenv('WALLET_NAME', 'wallet')
+STRONG_WALLET_KEY = os.getenv('STRONG_WALLET_KEY', '123456')
+WALLET_STORAGE_PATH = os.path.join(os.getenv('STORAGE_PATH', 'files'), 'payment.db')
+MINIMUM_WITHDRAW_AMOUNT = int(os.getenv('MINIMUM_WITHDRAW_AMOUNT', 1000000))
+STRONGHOLD_SNAPSHOT_PATH = os.path.join(os.getenv('WALLET_STORAGE_PATH', 'files'), 'stronghold.snapshot')
+FILE_DIR = os.getenv('FILE_DIR', 'files')
+WALLET_BACKUP_PATH = os.path.join(os.getenv('WALLET_BACKUP_PATH', 'files'), 'backup.db')
+
 
 # REST Configs:
 RESTAPI_HOST = os.environ['RESTAPI_HOST']
@@ -13,8 +17,9 @@ RESTAPI_PORT = os.environ['RESTAPI_PORT']
 N_REQUEST_RETRIES = os.environ.get('N_REQUEST_RETRIES', 3)
 
 # IOTA Configs:
-IOTA_FAUCET_URL = os.environ['IOTA_FAUCET_URL']
-IOTA_NODE_URL = os.environ['IOTA_NODE_URL']
+IOTA_FAUCET_URL = os.getenv('IOTA_FAUCET_URL', 'https://faucet.testnet.shimmer.network')
+IOTA_NODE_URL = os.getenv('IOTA_NODE_URL', 'https://api.testnet.shimmer.network')
+
 
 # Market Configs:
 RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')

@@ -11,3 +11,4 @@ psycopg2
 sqlalchemy
 pytest-cov
 joblib
+git+https://gitlab.inesctec.pt/valorem/payment-service.git
