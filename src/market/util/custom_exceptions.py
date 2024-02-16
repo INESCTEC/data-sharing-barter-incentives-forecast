@@ -10,6 +10,10 @@ class NoMarketBuyersExceptions(CustomExceptions):
     pass
 
 
+class NoMarketUsersExceptions(CustomExceptions):
+    pass
+
+
 class FeatureEngException(CustomExceptions):
     pass
 

@@ -1,5 +1,5 @@
 requests
-sklearn
+scikit-learn
 pandas
 numpy
 loguru
@@ -7,3 +7,9 @@ flake8
 coverage
 pytest
 python-dotenv
+psycopg2
+sqlalchemy
+pytest-cov
+joblib
+pingouin
+git+https://gitlab.inesctec.pt/valorem/payment-service.git

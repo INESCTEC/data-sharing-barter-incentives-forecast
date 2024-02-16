@@ -44,7 +44,9 @@ def calc_buyer_payment(
 
     noisy_features, gain = f(bid_price)
     xaxis = np.arange(b_min, bid_price + epsilon, epsilon)
-    if bid_price == b_min:
+    if bid_price <= b_min:
+        # todo: antes estava == nesta condicao. Nao faz mais sentido ser <= ?
+        #  atualizei por agora para cobrir todos casos em q bid_price < b_min
         payment = gain * bid_price
     elif len(xaxis) == 1:
         payment = max(0, gain * bid_price)
@@ -62,21 +64,26 @@ def calc_sellers_revenue(
         noisy_features,
         targets,
         gain_func,
-        buyer_id: str,
-        buyer_payment: float,
+        buyer_resource_id: str,
+        buyer_resource_payment: float,
         buyer_market_fee: float,
         sellers_id_list: list,
-        sellers_features_names,
+        buyer_features_name: list,
+        sellers_features_name: list,
+        user_features_list: list,
         K,
         lambd,
         n_hours: int):
-    logger.debug("Distributing revenue ...")
+
+    logger.debug("-" * 70)
+    logger.debug(f"Distributing revenue for buyer resource_id {buyer_resource_id}...")
     # Set payment to distribute by sellers
     # Equal to actual payment - market fee
-    payment = buyer_payment - buyer_market_fee
+    payment = buyer_resource_payment - buyer_market_fee
 
     # -- Calculate percentage revenue (% of buyer payment)
     pct_revenue_split = shapley_robust(
+        nr_buyer_features=len(buyer_features_name),
         Y=targets,
         X=noisy_features,
         K=K,
@@ -86,31 +93,41 @@ def calc_sellers_revenue(
     )
     # sum of pct should be 1 to assure buyer payment is correctly split
     # print(sum(pct_revenue_split))
+
+    if len(pct_revenue_split) != len(sellers_features_name):
+        raise Exception("Mismatch between dimensions of "
+                        "pct_revenue_split array and sellers_features_name "
+                        "arrays (should have equal lengths)")
+
     # todo: assess and solve possible precision problems here
     if round(sum(pct_revenue_split), 9) != 1.0:
-        raise Exception(f"Sum of revenue split different of zero, "
-                        f"for buyer {buyer_id}."
+        raise Exception(f"Sum of revenue split different of one, "
+                        f"for buyer resource ID {buyer_resource_id}."
                         f"\nSum value: {sum(pct_revenue_split)}"
                         f"\nPct values: {str(pct_revenue_split)}"
                         )
     # -- Check valid features for revenue:
     # Note: These are all the features EXCEPT current agent features
-    # (remember - the current buyer might also be a seller)
-    _features = [idx for idx, x in enumerate(sellers_features_names)
-                 if (x.startswith("seller"))
-                 and (x.split('__')[1] != buyer_id)]
+    # can be features created by the market automatic feature engineering
+    # process (which will contain the 'buyer_resource_id' on its
+    # name. Or features created by the user and shared with the market
+    # which will contain one of the id's on the 'user_features_list'
+    ignored_features = [buyer_resource_id] + user_features_list
+    valid_features_idx = [idx for idx, x in enumerate(sellers_features_name)
+                          if (x.startswith("seller"))
+                          and (x.split('__')[1] not in ignored_features)]
     # -- assign revenue to sellers:
     revenue_split = dict([
         (seller_id, {"pct_revenue": 0, "abs_revenue": 0})
         for seller_id in sellers_id_list
     ])
-    for j, idx in enumerate(_features):
-        feat = sellers_features_names[idx]
-        seller_id = int(feat.split('__')[1])
-        logger.debug(f"seller {seller_id} feature {feat} has to receive "
-                     f"{pct_revenue_split[j] * buyer_payment}")
-        revenue_split[seller_id]["pct_revenue"] += pct_revenue_split[j]
-        revenue_split[seller_id]["abs_revenue"] += pct_revenue_split[j] * payment  # noqa
+    for j, idx in enumerate(valid_features_idx):
+        feat = sellers_features_name[idx]
+        seller_resource_id = int(feat.split('__')[1])
+        logger.debug(f"seller resource {seller_resource_id} has to receive "
+                     f"{pct_revenue_split[j] * buyer_resource_payment}")
+        revenue_split[seller_resource_id]["pct_revenue"] += pct_revenue_split[j]
+        revenue_split[seller_resource_id]["abs_revenue"] += pct_revenue_split[j] * payment  # noqa
     return revenue_split
 
 
@@ -125,7 +142,7 @@ def square_rooted(x):
 def cos_similarity(x, y):
     numerator = sum(a * b for a, b in zip(x, y))
     denominator = square_rooted(x) * square_rooted(y)
-    return np.round(np.abs(numerator) / np.float(denominator), 3)
+    return np.round(np.abs(numerator) / float(denominator), 3)
 
 
 # 7. PAYMENT DIVISION - PAPER'S ALGORITHM 1
@@ -164,8 +181,8 @@ def aux_shap_aprox(m, M, K, X, Y, n_hours, gain_func):
 
 
 # @timeit
-def shapley_aprox(Y, X, K, n_hours, gain_func):
-    M = X.shape[1] - 1
+def shapley_aprox(nr_buyer_features, Y, X, K, n_hours, gain_func):
+    M = X.shape[1] - nr_buyer_features
     res = []
     # t0 = time()
     for m in np.arange(0, M):
@@ -203,19 +220,39 @@ def shapley_aprox_parallel(Y, X, K, n_hours, gain_func):
 
 
 # @timeit
-def shapley_robust(Y, X, K, lambd, n_hours, gain_func):
-    M = X.shape[1] - 1
-    phi_ = np.repeat(0.0, M)
-    phi = shapley_aprox(Y, X, K, n_hours, gain_func)
-    for m in np.arange(0, M):
-        s = 0
-        for k in np.arange(0, M):
-            if k != m:
-                s += cos_similarity(X[:, m], X[:, k])
-        phi_[m] = phi[m] * np.exp(-lambd * s)
-    if phi.sum() > 0:
-        phi = phi_ / phi_.sum()
-    return phi
+def shapley_robust(nr_buyer_features, Y, X, K, lambd, n_hours, gain_func):
+    M = X.shape[1] - nr_buyer_features
+
+    if M < 1:
+        raise ValueError("Number of market features must be greater than 1.")
+    elif M == 1:
+        # if there is only 1 feature beside buyers features, send all revenue
+        # to that seller feature
+        return 1
+    else:
+        # Create one coefficient for each feature
+        phi_ = np.repeat(0.0, M)
+        # Calculate shapley approx for each feature
+        phi = shapley_aprox(nr_buyer_features, Y, X, K, n_hours, gain_func)
+
+        if phi.sum() > 0:  # means that at least one feature has value > 0
+            # Penalize redundant features:
+            for m in np.arange(0, M):
+                if phi[m] == 0:
+                    phi_[m] = 0
+                else:
+                    s = 0  # will increase based on similarity between features
+                    for k in np.arange(0, M):
+                        if k != m:
+                            s += cos_similarity(X[:, m], X[:, k])
+                    # penalize phi for feature M based on similarity with
+                    # other features
+                    phi_[m] = phi[m] * np.exp(-lambd * s)
+
+            # Create new phi (after penalizations)
+            phi = phi_ / phi_.sum()
+
+        return phi
 
 
 # #############################################################################

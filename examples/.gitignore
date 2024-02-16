@@ -1,5 +1,4 @@
-!.env
-files/
-simulation/files/
-sim_no_api/files/
-sim_with_api/files/
+.env
+simulator_no_api/files/datasets/
+simulator_no_api/files/reports/
+data_scenario/

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from loguru import logger
+from src.database.PostgresDB import PostgresDB
 
 # #############################################################################
 # Get Session Data:
@@ -12,45 +13,24 @@ def get_session_data(api_controller):
     # Get current last active session (status='closed'):
     session_data = api_controller.list_last_session(status='closed')
     # Get session_id & fetch data for that session:
-    active_session_id = session_data["market_session_id"]
+    active_session_id = session_data["id"]
     logger.debug(f"Retrieving data for Session ID {active_session_id}")
-    # -- Session buyers bids:
-    buyers_bids = api_controller.list_session_bids(active_session_id)
-    # -- Session active sellers:
-    active_sellers = api_controller.list_active_sellers()
+    # -- List CONFIRMED bids for this session:
+    bids_per_resource = api_controller.list_session_bids(
+        session_id=active_session_id,
+        confirmed=True,
+    )
+    # -- Session active resources:
+    users_resources = api_controller.list_user_resources()
     # -- Session weights:
     price_weights = api_controller.list_session_weights(active_session_id)
     logger.info("Fetching session data ... Ok!")
-    return session_data, buyers_bids, active_sellers, price_weights
-
-
-# #############################################################################
-# Get Measurements Data for Session Agents:
-# #############################################################################
-
-
-def get_measurements_data_mock(api_controller, buyers_ids, sellers_ids,
-                               market_launch_time):
-    # todo: Right now working with mock data - replace by DB queries:
-    from ..util.mock import MeasurementsGenerator
-    logger.info("Querying agents measurements ...")
-    agent_list = set(buyers_ids + sellers_ids)
-    # Create fictitious measurements data
-    mg = MeasurementsGenerator()
-    measurements = {}
-    for agent in sorted(agent_list):
-        measurements[agent] = mg.generate_mock_data_sin(
-            start_date=market_launch_time - pd.DateOffset(months=12),
-            end_date=market_launch_time,
-        )
-    logger.info("Querying agents measurements ... Ok!")
-    return measurements
-
-
-def get_measurements_data(api_controller, buyers_ids, sellers_ids,
-                          market_launch_time):
-    # todo: implement this once data in DB
-    raise NotImplementedError("Method not yet implemented.")
+    return {
+        "session_data": session_data,
+        "bids_per_resource": bids_per_resource,
+        "users_resources": users_resources,
+        "price_weights": price_weights
+    }
 
 
 # #############################################################################
@@ -63,7 +43,7 @@ def close_no_bids_session(api_controller,
                           curr_price_weights):
     import datetime as dt
     # -- Current session info:
-    curr_session_id = curr_session_data["market_session_id"]
+    curr_session_id = curr_session_data["id"]
     curr_session_close_date = dt.datetime.strptime(
         curr_session_data["close_ts"],
         "%Y-%m-%dT%H:%M:%S.%fZ"

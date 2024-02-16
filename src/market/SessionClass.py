@@ -21,13 +21,14 @@ class SessionClass(ValidatorClass):
     next_weights_p: np.ndarray = None       # Next session price weights
     buyers_results: dict = None             # Session results by buyer
     sellers_results: dict = None            # Session results by seller
+    buyers_forecasts: dict = None           # Session forecasts by buyer
     n_price_steps: int = None               # Number of price steps
     delta: np.float64 = None                # Learning rate for price updates
     possible_p: np.ndarray = None           # Array of possible price refs
     epsilon: np.float64 = None              # Interval in possible_p array
     status_list = ["open", "closed", "running", "finished"]
     total_market_fee = 0
-    market_fee_per_buyer = {}
+    market_fee_per_resource = {}
 
     def set_initial_conditions(self):
         # possible prices:
@@ -39,6 +40,7 @@ class SessionClass(ValidatorClass):
         self.epsilon = self.possible_p[1] - self.possible_p[0]
         self.buyers_results = {}
         self.sellers_results = {}
+        self.buyers_forecasts = {}
 
     def validate_attributes(self):
         if self.session_id is None:
@@ -76,7 +78,7 @@ class SessionClass(ValidatorClass):
             "next_weights_p": str(self.next_weights_p),
             "prev_weights_p": str(self.prev_weights_p),
             "total_market_fee": self.total_market_fee,
-            "market_fee_per_buyer": self.market_fee_per_buyer,
+            "market_fee_per_resource": self.market_fee_per_resource,
         }
 
     def set_previous_price_weights(self, weights_p):
@@ -89,13 +91,16 @@ class SessionClass(ValidatorClass):
         self.next_market_price = np.float64(price)
 
     def set_buyer_result(self, buyer_cls):
-        self.buyers_results[buyer_cls.identifier] = buyer_cls.details
+        self.buyers_results[buyer_cls.resource_id] = buyer_cls.details
 
     def set_seller_result(self, seller_cls):
-        self.sellers_results[seller_cls.identifier] = seller_cls.details
+        self.sellers_results[seller_cls.resource_id] = seller_cls.details
 
-    def add_market_fee(self, buyer_id, value):
-        self.market_fee_per_buyer[buyer_id] = value
+    def set_buyer_forecasts(self, buyer_cls):
+        self.buyers_forecasts[buyer_cls.resource_id] = buyer_cls.forecasts_dict
+
+    def add_market_fee(self, resource_id, value):
+        self.market_fee_per_resource[resource_id] = value
         self.total_market_fee += value
 
     def start_session(self):

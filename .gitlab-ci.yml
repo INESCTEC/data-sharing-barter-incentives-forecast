@@ -6,12 +6,12 @@ test-market:
     name: python:3.8
     entrypoint: ["/usr/bin/env"]
   stage: test-market
+  before_script:
+    # Configure git to use the token for your GitLab instance
+    - 'git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"'
   script:
     - pip install -r requirements.txt
     - flake8
     - cd src/market
-    - coverage run -m pytest
-    - coverage report -m
+    - pytest --cov
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
-
-
