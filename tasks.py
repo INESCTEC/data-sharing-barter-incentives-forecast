@@ -9,9 +9,27 @@ load_dotenv(".env")
 from conf import settings
 from src.MarketController import MarketController
 from src.api.exception.APIException import NoMarketSessionException
+from src.market.exception.ControllerException import PendingTransferOut
+
+
+def retry(func, max_attempts=3, delay=1, exceptions=(Exception,)):
+    for attempt in range(max_attempts):
+        try:
+            result = func()
+            return result
+        except exceptions as e:
+            logger.debug(f"Attempt {attempt+1} failed:", e)
+            if attempt < max_attempts - 1:
+                logger.debug("Retrying after", delay, "seconds...")
+                time.sleep(delay)
+    raise Exception("Max attempts reached, could not get a valid result")
 
 
 class MarketTasks(object):
+
+    def __init__(self):
+        self.open_session_retry_delay = 60
+        self.open_session_retry_attempts = 15
 
     @staticmethod
     def approve_market_bids():
@@ -60,8 +78,7 @@ class MarketTasks(object):
         except Exception:
             logger.exception(f"{msg_} Failed! {time() - t0:.2f}s")
 
-    @staticmethod
-    def run_session():
+    def run_session(self):
         """
         Run a market session.
         1. Closes current open market session ( stops bidding )
@@ -95,6 +112,17 @@ class MarketTasks(object):
 
             # Validate transfers:
             market.validate_tokens_transfer()
+
+            # Try to open new market session
+            # (status change from 'staged' to 'open')
+            # Will fail until validate tokens transfer is successful as
+            # we cannot open new sessions if previous balance transfers
+            # were not successfully registered in the DLT
+            retry(market.open_market_session,
+                  max_attempts=self.open_session_retry_attempts,
+                  delay=self.open_session_retry_delay,
+                  exceptions=(PendingTransferOut,))
+
             logger.success(f"{msg_} Ok! {time() - t0:.2f}s")
         except Exception:
             logger.exception(f"{msg_} Failed! {time() - t0:.2f}s")
