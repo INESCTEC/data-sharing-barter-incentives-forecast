@@ -1,6 +1,6 @@
 import fire
 
-from time import time
+from time import time, sleep
 from loguru import logger
 from dotenv import load_dotenv
 
@@ -21,7 +21,7 @@ def retry(func, max_attempts=3, delay=1, exceptions=(Exception,)):
             logger.debug(f"Attempt {attempt+1} failed:", e)
             if attempt < max_attempts - 1:
                 logger.debug("Retrying after", delay, "seconds...")
-                time.sleep(delay)
+                sleep(delay)
     raise Exception("Max attempts reached, could not get a valid result")
 
 
