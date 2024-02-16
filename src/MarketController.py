@@ -27,9 +27,7 @@ from .market.helpers.units_helpers import (
 )
 
 from .api.exception.APIException import *
-from .market.exception.ControllerException import *
-from .wallet.exception.TangleException import *
-from .wallet.exception.WalletException import *
+from .market.exception.ControllerException import PendingTransferOut
 
 
 class MarketController:
