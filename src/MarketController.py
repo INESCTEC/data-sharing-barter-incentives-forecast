@@ -189,15 +189,15 @@ class MarketController:
 
         :return:
         """
-        # Check open session:
-        closed_session = self.api.list_last_session(status='closed')
+        # Check current open session:
+        open_session = self.api.list_last_session(status='open')
         logger.info("Current 'CLOSED' session:")
-        logger.info(closed_session)
+        logger.info(open_session)
         logger.info("")
 
         # List bids for each session:
         bids = self.api.list_session_bids(
-            session_id=closed_session["id"],
+            session_id=open_session["id"],
             confirmed=False,
         )
         logger.info(f"There are {len(bids)} 'UNCONFIRMED' bids for this "
