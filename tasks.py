@@ -128,7 +128,7 @@ class MarketTasks(object):
             logger.exception(f"{msg_} Failed! {time() - t0:.2f}s")
 
     @staticmethod
-    def validate_transfer_out(self):
+    def validate_transfer_out():
         """
         Validate pending transfer out transactions and update agent balances.
         """
