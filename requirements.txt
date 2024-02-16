@@ -12,4 +12,5 @@ sqlalchemy
 pytest-cov
 joblib
 pingouin
+fire
 git+https://gitlab.inesctec.pt/valorem/payment-service.git
