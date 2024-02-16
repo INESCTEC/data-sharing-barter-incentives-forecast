@@ -632,17 +632,23 @@ class MarketController:
                 logger.exception("Unexpected validation failure!")
                 continue
 
-            for tid in tx_outputs:
-                try:
-                    response = self.api.put_confirm_transfer_out(
-                        withdraw_transfer_id=tid.id,
-                        is_solid=tid.confirmed,
-                    )
-                    logger.debug(f"Transfer out response: {response}")
-                except WalletTransferOutException:
-                    logger.error(f"Failed to register transfer out operation "
-                                 f"for withdraw ID: {tid.id}")
-                    continue
+            valid_tx = all([x.confirmed for x in tx_outputs])
+
+            if valid_tx:
+                logger.success(f"Transfer output Txn {tangle_msg_id} is valid!")  # noqa
+                for tid in transfer_list:
+                    try:
+                        response = self.api.put_confirm_transfer_out(
+                            withdraw_transfer_id=tid["withdraw_transfer_id"],
+                            is_solid=True,
+                        )
+                        logger.debug(f"Transfer out response: {response}")
+                    except WalletTransferOutException:
+                        logger.error(f"Failed to register transfer out "
+                                     f"operation for withdraw ID: {tid.id}")
+                        continue
+            else:
+                logger.error(f"Transfer output Txn {tangle_msg_id} is invalid!")  # noqa
 
     def create_market_report(self):
         # todo: Fetch session bids
