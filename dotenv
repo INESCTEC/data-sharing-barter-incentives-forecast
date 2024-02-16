@@ -3,7 +3,6 @@ RUN_REAL_MARKET=false
 # Market configs
 MARKET_EMAIL=market_email
 MARKET_PASSWORD=market_password
-N_JOBS=-1
 
 # Database configs:
 POSTGRES_HOST=db_host
@@ -18,11 +17,17 @@ RESTAPI_PORT=rest_api_port
 N_REQUEST_RETRIES=n_request_retries
 
 # IOTA configs:
-IOTA_FAUCET_URL=https://faucet.chrysalis-devnet.iota.cafe/api/plugins/faucet/enqueue
-IOTA_NODE_URL=https://api.lb-1.h.chrysalis-devnet.iota.cafe/
+IOTA_NODE_URL=https://api.testnet.shimmer.network
+IOTA_FAUCET_URL=https://faucet.testnet.shimmer.network
 
 # Wallet Configs:
 MINIMUM_WITHDRAW_AMOUNT = 1000000
 STRONG_WALLET_KEY=strong_wallet_key
 WALLET_NAME = wallet_name
-STORAGE_PATH=files/
+STORAGE_PATH=files
+WALLET_BACKUP_PATH=files
+FILE_DIR=files
+
+# Other configs:
+N_JOBS=-1
+GITLAB_TOKEN=gitlab_token_here
