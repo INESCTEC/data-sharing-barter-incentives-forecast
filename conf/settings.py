@@ -3,8 +3,24 @@
 import os
 import numpy as np
 
+from loguru import logger
 from dataclasses import dataclass
 
+# Pathing:
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Logs Configs:
+LOGS_DIR = os.path.join(BASE_PATH, "files", "logs")
+
+# -- Initialize Logger:
+logs_kw = dict(
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level:<5} | {message}",
+    rotation="2 week",
+    compression="zip",
+    backtrace=True,
+)
+logger.add(os.path.join(LOGS_DIR, "info_log.log"), level='INFO', **logs_kw)
+logger.add(os.path.join(LOGS_DIR, "debug_log.log"), level='DEBUG', **logs_kw)
 
 # Wallet Configs:
 WALLET_NAME = os.getenv('WALLET_NAME', 'wallet')
@@ -15,7 +31,6 @@ STRONGHOLD_SNAPSHOT_PATH = os.path.join(os.getenv('WALLET_STORAGE_PATH', 'files'
 FILE_DIR = os.getenv('FILE_DIR', 'files')
 WALLET_BACKUP_PATH = os.path.join(os.getenv('WALLET_BACKUP_PATH', 'files'), 'backup.db')
 
-
 # REST Configs:
 RESTAPI_HOST = os.environ.get('RESTAPI_HOST', "")
 RESTAPI_PORT = os.environ.get('RESTAPI_PORT', "")
@@ -24,7 +39,6 @@ N_REQUEST_RETRIES = os.environ.get('N_REQUEST_RETRIES', 3)
 # IOTA Configs:
 IOTA_FAUCET_URL = os.getenv('IOTA_FAUCET_URL', 'https://faucet.testnet.shimmer.network')
 IOTA_NODE_URL = os.getenv('IOTA_NODE_URL', 'https://api.testnet.shimmer.network')
-
 
 # Market Configs:
 RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')
