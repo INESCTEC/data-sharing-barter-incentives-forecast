@@ -166,7 +166,7 @@ class MarketClass:
                     max_payment=buyer_bid["max_payment"],
                     gain_func=buyer_bid["gain_func"],
                     market_bid_id=buyer_bid["id"],
-                    features_list=buyer_bid["features_list"]
+                    features_list=buyer_bid.get("features_list", [])
                 ).validate_attributes()
 
     def load_users_resources(self, users_resources: list):
@@ -260,7 +260,7 @@ class MarketClass:
         :param expected_dates:
         :return:
         """
-        data = data.resample('H').mean()
+        data = data.resample('h').mean()
         data = data.reindex(expected_dates)
         return data
 
@@ -283,7 +283,7 @@ class MarketClass:
             start=_end_date - pd.DateOffset(hours=_lookback_time),
             end=_end_date,
             tz=self.MARKET_TZ,
-            freq="H"
+            freq="h"
         )
 
         # Add sellers data:
@@ -291,7 +291,7 @@ class MarketClass:
         for seller_id, seller_cls in self.sellers_data.items():
             df_ = seller_cls.y[["value"]]
             df_ = df_.rename(columns={"value": seller_id})
-            df_ = df_.resample("H").mean()
+            df_ = df_.resample("h").mean()
             market_df = market_df.join(df_, how="left")
 
         # Check if there is no market data:
@@ -470,7 +470,7 @@ class MarketClass:
         # Remove "target" variable from train dataset:
         train_targets = train_features.pop("target").to_frame()
         # Test features (variables available for all dates since launch time)
-        test_features = features_[launch_time_:]
+        test_features = features_.loc[self.forecast_range]
         return train_features, train_targets, test_features
 
     def calculate_payment_and_forecast(self,
@@ -730,11 +730,11 @@ class MarketClass:
             self.users_data[user_id].sum_revenue(has_to_receive)
 
     def set_forecast_range(self):
-        self.forecast_start = self.launch_time
+        self.forecast_start = self.launch_time.replace(minute=0, second=0, microsecond=0)
         self.forecast_end = self.launch_time + pd.DateOffset(hours=self.FORECAST_HORIZON)  # noqa
         self.forecast_range = pd.date_range(start=self.forecast_start,
                                             end=self.forecast_end,
-                                            freq='H', tz=self.MARKET_TZ)
+                                            freq='h', tz=self.MARKET_TZ)[:-1]
 
     def define_payments_and_forecasts(self):
         """

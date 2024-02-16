@@ -54,7 +54,7 @@ class AgentsLoader:
                 dataset["datetime"],
                 format=self.datetime_fmt).dt.tz_localize("UTC")
             dataset.set_index("datetime", inplace=True)
-            dataset = dataset.resample("1H").mean()
+            dataset = dataset.resample("h").mean()
             dataset.dropna(how="all", inplace=True)
         else:
             logger.warning(f"File {dataset_path} not found. "

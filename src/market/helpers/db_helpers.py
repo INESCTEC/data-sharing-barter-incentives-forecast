@@ -47,7 +47,7 @@ def get_measurements_data(users_resources, market_launch_time):
         else:
             # todo: improve data processing pipeline
             data = data.set_index("datetime")
-            data = data.resample("H").mean().dropna()
+            data = data.resample("h").mean().dropna()
             measurements[resource_id] = data
         logger.debug(f"Querying for resource ID {resource_id} ... Ok!")
     logger.info("Querying measurements for resource list ... Ok!")

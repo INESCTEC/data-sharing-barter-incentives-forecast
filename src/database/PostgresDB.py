@@ -1,6 +1,6 @@
 import pandas as pd
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 from .helpers import to_sql_no_update
 
@@ -26,7 +26,7 @@ class PostgresDB:
 
     def execute_query(self, query):
         with self.engine.connect() as con:
-            rs = con.execute(query)
+            rs = con.execute(text(query))
         return rs
 
     def read_query_pandas(self, query):

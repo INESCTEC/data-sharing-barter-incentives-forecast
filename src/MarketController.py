@@ -33,6 +33,8 @@ class MarketController:
     def __init__(self):
         # Market Wallet Controller:
         self.wallet = WalletController()
+        # @todo: @Andre - revisit WalletController, it is forcing automatic
+        #   wallet creation.
         # Tangle Controller:
         self.tangle = IOTAClientController(node_url=[settings.IOTA_NODE_URL])
         # Market API Controller:
@@ -408,7 +410,7 @@ class MarketController:
             )
             users_resources.append(
                 {'id': res_id,
-                 'name': 'resource-1',
+                 'name': f'user-{user_id}-resource-{res_id}',
                  'type': 'measurements',
                  'to_forecast': True,
                  'registered_at': '2022-01-04T10:31:32.785753Z',
@@ -435,7 +437,9 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=settings.N_JOBS, enable_db_uploads=True)
+        mc = MarketClass(n_jobs=settings.N_JOBS,
+                         enable_db_uploads=True,
+                         auto_feature_selection=False)
         mc.init_session(
             session_data=session_data,
             price_weights=price_weights,
@@ -521,7 +525,7 @@ class MarketController:
         # List of balances to transfer
         # Note: user must have balance > MINIMUM_WITHDRAW_AMOUNT (.env)
         balance_list = self.api.get_balances_to_transfer()
-        balance_list = [x for x in balance_list if x["user"] != 1]
+        balance_list = [x for x in balance_list if x["user"] != 1]  # todo: remove based on role / admin
         logger.info(balance_list)
         logger.info("")
 
@@ -552,21 +556,25 @@ class MarketController:
 
         # Market balance:
         balance = self.wallet.get_balance()
-        balance = balance["available"]
+        balance = int(balance["baseCoin"]["available"])
         logger.info(f"Current balance (market wallet): {balance / 1000000}Mi")
         logger.info(f"Total to transfer: {total_transfer / 1000000}Mi")
         logger.info(f"Expected remaining: {(balance - total_transfer) / 1000000}Mi")
+
+        # Check if market wallet has sufficient funds to transfer:
+        amount_to_transfer = sum([x["amount"] for x in transfer_list])
+        if balance < amount_to_transfer:
+            log_msg_ = "Insufficient funds to transfer tokens."
+            logger.error(log_msg_)
+            return False
 
         try:
             # Create multi-transfer operations:
             node_response = self.wallet.transfer_tokens_multi_address(
                 transfer_list=transfer_list
             )
-            tangle_msg_id = node_response["id"]
+            tangle_msg_id = node_response.transactionId
             logger.debug(f"Tangle Message ID: {tangle_msg_id}")
-        except InsufficientFundsException as ex:
-            logger.error(ex.errors["message"])
-            return False
         except Exception:
             logger.exception("Unexpected transfer failure!")
             return False
@@ -585,7 +593,7 @@ class MarketController:
                 )
                 logger.debug(transfer_data)
             except WalletTransferOutException:
-                logger.error("Failed to register tokens transfer out action.")
+                logger.exception("Failed to register tokens transfer out action.")
                 continue
 
     def validate_tokens_transfer(self):
