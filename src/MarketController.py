@@ -6,6 +6,10 @@ from loguru import logger
 from collections import defaultdict
 
 from conf import settings
+
+from payment.PaymentGateway.IOTAPayment.IOTAClientController import IOTAClientController  # noqa
+from payment.PaymentGateway.IOTAPayment.IOTAClientController import MultipleOutputSchema, TransactionOutput  # noqa
+
 from .api import Controller
 from .wallet.WalletController import WalletController
 from .market import MarketClass
@@ -22,7 +26,6 @@ from .market.helpers.units_helpers import (
     convert_buyers_bids_to_mi,
 )
 
-from payment.PaymentGateway.IOTAPayment.IOTAClientController import IOTAClientController
 from .api.exception.APIException import *
 from .market.exception.ControllerException import *
 from .wallet.exception.TangleException import *
@@ -614,30 +617,33 @@ class MarketController:
             transfers_by_msg_id[tangle_msg_id].append(transfer_data)
 
         for tangle_msg_id, transfer_list in transfers_by_msg_id.items():
+
+            tx_outputs = [TransactionOutput(id=x["withdraw_transfer_id"],
+                                            address=x["address"],
+                                            amount=x["amount"])
+                          for x in transfer_list]
+
+            multiple_output = MultipleOutputSchema(
+                transaction_id=tangle_msg_id,
+                transactions=tx_outputs)
+
             try:
                 # Validate message ID:
-                self.tangle.validate_message(
-                    output_type="multiple",
-                    message_id=tangle_msg_id,
-                    transfer_list=transfer_list
-                )
-            except (IdNotSolidInTangle, IdNotFoundInTangle) as ex:
-                logger.error(ex.errors["message"])
-                continue
+                self.tangle.validate_multiple_outputs(multiple_output)
             except Exception:
                 logger.exception("Unexpected validation failure!")
                 continue
 
-            for tid in transfer_list:
+            for tid in tx_outputs:
                 try:
                     response = self.api.put_confirm_transfer_out(
-                        withdraw_transfer_id=tid["withdraw_transfer_id"],
-                        is_solid=True,
+                        withdraw_transfer_id=tid.id,
+                        is_solid=tid.confirmed,
                     )
                     logger.debug(f"Transfer out response: {response}")
                 except WalletTransferOutException:
-                    logger.error("Failed to register tokens transfer out "
-                                 "action.")
+                    logger.error(f"Failed to register transfer out operation "
+                                 f"for withdraw ID: {tid.id}")
                     continue
 
     def create_market_report(self):
