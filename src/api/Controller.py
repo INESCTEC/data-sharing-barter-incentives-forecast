@@ -251,7 +251,7 @@ class Controller(RequestController):
         sessions = response['data']
         if len(sessions) == 0:
             log_msg = "No market sessions available."
-            logger.warning(log_msg)
+            logger.error(log_msg)
             raise NoMarketSessionException(message=log_msg,
                                            errors=response)
         else:

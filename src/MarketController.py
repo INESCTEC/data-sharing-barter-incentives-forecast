@@ -214,17 +214,23 @@ class MarketController:
                 continue
 
             try:
-                valid_in_tangle = self.tangle.validate_transaction_id(transaction_id=b["tangle_msg_id"],
-                                                                      address=market_wallet_address,
-                                                                      amount=b["max_payment"])
+                valid_in_tangle = self.tangle.validate_transaction_id(
+                    transaction_id=b["tangle_msg_id"],
+                    address=market_wallet_address,
+                    amount=b["max_payment"]
+                )
 
                 if valid_in_tangle:
-                    rsp = self.api.post_validate_bid(tangle_msg_id=b["tangle_msg_id"])
-                    logger.info(f"Validating bid {b['id']} - {b['tangle_msg_id']} ... Ok!")
+                    rsp = self.api.post_validate_bid(
+                        tangle_msg_id=b["tangle_msg_id"]
+                    )
+                    logger.info(f"Validating bid {b['id']} - "
+                                f"{b['tangle_msg_id']} ... Ok!")
                     logger.debug(rsp)
-            except Exception as e:
-                logger.error(str(e))
-                logger.exception(f"Validating bid {b['id']} - {b['tangle_msg_id']} ... Failed!")
+
+            except Exception:
+                logger.exception(f"Validating bid {b['id']} - "
+                                 f"{b['tangle_msg_id']} ... Failed!")
 
     def close_market_session(self):
         """

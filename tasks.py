@@ -8,8 +8,8 @@ load_dotenv(".env")
 
 from conf import settings
 from src.MarketController import MarketController
-from src.api.exception.APIException import NoMarketSessionException
-from src.market.exception.ControllerException import PendingTransferOut
+from src.api.exception.APIException import (NoMarketSessionException,
+                                            MarketSessionException)
 
 
 def retry(func, max_attempts=3, delay=1, retry_if_result_false=False,
@@ -52,6 +52,8 @@ class MarketTasks(object):
             # Approve bids:
             market.approve_buyers_bids()
             logger.success(f"{msg_} Ok! {time() - t0:.2f}s")
+        except (NoMarketSessionException, MarketSessionException):
+            pass
         except Exception:
             logger.exception(f"{msg_} Failed! {time() - t0:.2f}s")
 
