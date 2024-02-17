@@ -604,6 +604,12 @@ class MarketController:
         :return:
         """
         transfer_list = self.api.list_pending_transfer_out()
+
+        if len(transfer_list) == 0:
+            log_msg_ = "No pending transfer out operations."
+            logger.warning(log_msg_)
+            return
+
         transfers_by_msg_id = defaultdict(list)
         for ttx in transfer_list:
             tangle_msg_id = ttx["tangle_msg_id"]
