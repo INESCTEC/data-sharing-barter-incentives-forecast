@@ -506,18 +506,16 @@ class MarketController:
         # todo: improve this detection process in the future.
         open_sessions = self.api.list_market_sessions(status="open")
         if len(open_sessions) > 0:
-            log_msg_ = "Failed to transfer tokens out. " \
-                       "There are still sessions with " \
-                       "'open' status."
+            log_msg_ = ("Can only perform transfer-out operations while "
+                        "there are no sessions in 'open' status.")
             raise WalletTransferOutException(
                 message=log_msg_,
                 errors={"message": log_msg_}
             )
         running_sessions = self.api.list_market_sessions(status="running")
         if len(running_sessions) > 0:
-            log_msg_ = "Failed to transfer tokens out. " \
-                       "There are still sessions with " \
-                       "'running' status."
+            log_msg_ = ("Can only perform transfer-out operations while "
+                        "there are no sessions in 'running' status.")
             raise WalletTransferOutException(
                 message=log_msg_,
                 errors={"message": log_msg_}
@@ -550,10 +548,8 @@ class MarketController:
 
         if len(transfer_list) == 0:
             log_msg_ = "Balance transfer-out list is empty."
-            raise WalletTransferOutException(
-                message=log_msg_,
-                errors={"message": log_msg_}
-            )
+            logger.warning(log_msg_)
+            return False
 
         # Market balance:
         balance = self.wallet.get_balance()
@@ -565,19 +561,23 @@ class MarketController:
         # Check if market wallet has sufficient funds to transfer:
         amount_to_transfer = sum([x["amount"] for x in transfer_list])
         if balance < amount_to_transfer:
-            log_msg_ = "Insufficient funds to transfer tokens."
+            log_msg_ = (f"Insufficient funds in market wallet ({balance}) "
+                        f"to allow a {amount_to_transfer} transfer.")
             logger.error(log_msg_)
             return False
 
         try:
             # Create multi-transfer operations:
+            logger.info("Performing multi-output txn ...")
             node_response = self.wallet.transfer_tokens_multi_address(
                 transfer_list=transfer_list
             )
             tangle_msg_id = node_response.transactionId
             logger.debug(f"Tangle Message ID: {tangle_msg_id}")
+            logger.success("Performing multi-output txn ... Ok!")
         except Exception:
             logger.exception("Unexpected transfer failure!")
+            logger.error("Performing multi-output txn ... Failed!")
             return False
 
         # Register each transfer in DB:

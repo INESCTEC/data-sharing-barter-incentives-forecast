@@ -18,7 +18,7 @@ def retry(func, max_attempts=3, delay=1, exceptions=(Exception,)):
             result = func()
             return result
         except exceptions as e:
-            logger.debug(f"Attempt {attempt+1} failed:", e)
+            logger.debug(f"Attempt {attempt + 1} failed:", e)
             if attempt < max_attempts - 1:
                 logger.debug("Retrying after", delay, "seconds...")
                 sleep(delay)
