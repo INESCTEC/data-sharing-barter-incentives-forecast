@@ -18,10 +18,10 @@ def retry(func, max_attempts=3, delay=1, retry_if_result_false=False,
         try:
             result = func()
             if retry_if_result_false and not result:
-                logger.error("Unable to perform operation")
+                raise Exception("Unable to perform operation")
             return result
         except exceptions as e:
-            logger.debug(f"Attempt ({attempt + 1} / {max_attempts}) failed")
+            logger.debug(f"Attempt ({attempt + 1}/{max_attempts}) failed")
             if attempt < max_attempts - 1:
                 logger.debug(f"Retrying after {delay}s ...")
                 sleep(delay)
