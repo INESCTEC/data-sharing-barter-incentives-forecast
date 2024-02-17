@@ -116,6 +116,8 @@ class MarketTasks(object):
             if not result:
                 # Means that it was not possible to execute the session
                 # (e.g., due to no bids by agents)
+                # In this case, a staged session will be opened
+                market.open_market_session()
                 return
 
             # Transfer balances:
