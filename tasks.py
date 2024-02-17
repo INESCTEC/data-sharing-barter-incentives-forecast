@@ -116,6 +116,7 @@ class MarketTasks(object):
             # Validate transfer out operations.
             # note that this must pass before opening new sessions
             # (thus the retry)
+            sleep(30)  # Wait a bit for the txn to be confirmed in the DLT
             retry(market.validate_tokens_transfer,
                   max_attempts=self.transfer_out_validate_retry_attempts,
                   delay=self.transfer_out_validate_retry_delay,
