@@ -33,6 +33,7 @@ class MarketTasks(object):
     def __init__(self):
         self.transfer_out_validate_retry_delay = 30
         self.transfer_out_validate_retry_attempts = 15
+        self.dlt_confirm_wait_time = 5
 
     @staticmethod
     def approve_market_bids():
@@ -116,12 +117,13 @@ class MarketTasks(object):
             # Validate transfer out operations.
             # note that this must pass before opening new sessions
             # (thus the retry)
-            sleep(30)  # Wait a bit for the txn to be confirmed in the DLT
+            logger.info(f"Waiting {self.dlt_confirm_wait_time}s for DLT "
+                        f"to confirm txn ...")
+            sleep(self.dlt_confirm_wait_time)
             retry(market.validate_tokens_transfer,
                   max_attempts=self.transfer_out_validate_retry_attempts,
                   delay=self.transfer_out_validate_retry_delay,
                   retry_if_result_false=True)
-
             # Try to open new market session
             # (status change from 'staged' to 'open')
             # Will fail until validate tokens transfer is successful as
