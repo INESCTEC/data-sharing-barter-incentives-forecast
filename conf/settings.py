@@ -15,7 +15,7 @@ LOGS_DIR = os.path.join(BASE_PATH, "files", "logs")
 # -- Initialize Logger:
 logs_kw = dict(
     format="{time:YYYY-MM-DD HH:mm:ss} | {level:<5} | {message}",
-    rotation="2 week",
+    rotation="1 week",
     compression="zip",
     backtrace=True,
 )
