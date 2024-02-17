@@ -620,6 +620,7 @@ class MarketController:
             }
             transfers_by_msg_id[tangle_msg_id].append(transfer_data)
 
+        all_successful = True
         for tangle_msg_id, transfer_list in transfers_by_msg_id.items():
 
             tx_outputs = [TransactionOutput(id=x["withdraw_transfer_id"],
@@ -636,6 +637,7 @@ class MarketController:
                 self.tangle.validate_multiple_outputs(multiple_output)
             except Exception:
                 logger.exception("Unexpected validation failure!")
+                all_successful = False
                 continue
 
             valid_tx = all([x.confirmed for x in tx_outputs])
@@ -655,6 +657,9 @@ class MarketController:
                         continue
             else:
                 logger.error(f"Transfer output Txn {tangle_msg_id} is invalid!")  # noqa
+                all_successful = False
+
+        return all_successful
 
     def create_market_report(self):
         # todo: Fetch session bids

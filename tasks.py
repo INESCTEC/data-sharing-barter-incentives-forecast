@@ -12,15 +12,18 @@ from src.api.exception.APIException import NoMarketSessionException
 from src.market.exception.ControllerException import PendingTransferOut
 
 
-def retry(func, max_attempts=3, delay=1, exceptions=(Exception,)):
+def retry(func, max_attempts=3, delay=1, retry_if_result_false=False,
+          exceptions=(Exception,)):
     for attempt in range(max_attempts):
         try:
             result = func()
+            if retry_if_result_false and not result:
+                logger.error("Unable to perform operation")
             return result
         except exceptions as e:
-            logger.debug(f"Attempt {attempt + 1} failed:", e)
+            logger.debug(f"Attempt ({attempt + 1} / {max_attempts}) failed")
             if attempt < max_attempts - 1:
-                logger.debug("Retrying after", delay, "seconds...")
+                logger.debug(f"Retrying after {delay}s ...")
                 sleep(delay)
     raise Exception("Max attempts reached, could not get a valid result")
 
@@ -28,8 +31,8 @@ def retry(func, max_attempts=3, delay=1, exceptions=(Exception,)):
 class MarketTasks(object):
 
     def __init__(self):
-        self.open_session_retry_delay = 60
-        self.open_session_retry_attempts = 15
+        self.transfer_out_validate_retry_delay = 30
+        self.transfer_out_validate_retry_attempts = 15
 
     @staticmethod
     def approve_market_bids():
@@ -110,18 +113,20 @@ class MarketTasks(object):
             # Transfer balances:
             market.transfer_tokens_out()
 
-            # Validate transfers:
-            market.validate_tokens_transfer()
+            # Validate transfer out operations.
+            # note that this must pass before opening new sessions
+            # (thus the retry)
+            retry(market.validate_tokens_transfer,
+                  max_attempts=self.transfer_out_validate_retry_attempts,
+                  delay=self.transfer_out_validate_retry_delay,
+                  retry_if_result_false=True)
 
             # Try to open new market session
             # (status change from 'staged' to 'open')
             # Will fail until validate tokens transfer is successful as
             # we cannot open new sessions if previous balance transfers
             # were not successfully registered in the DLT
-            retry(market.open_market_session,
-                  max_attempts=self.open_session_retry_attempts,
-                  delay=self.open_session_retry_delay,
-                  exceptions=(PendingTransferOut,))
+            market.open_market_session()
 
             logger.success(f"{msg_} Ok! {time() - t0:.2f}s")
         except Exception:
