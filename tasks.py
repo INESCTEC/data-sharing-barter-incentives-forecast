@@ -141,6 +141,10 @@ class MarketTasks(object):
             market.open_market_session()
 
             logger.success(f"{msg_} Ok! {time() - t0:.2f}s")
+        except NoMarketSessionException:
+            # NoMarketSession exception is raised when there is no
+            # open session to run
+            logger.error(f"{msg_} Failed! {time() - t0:.2f}s")
         except Exception:
             logger.exception(f"{msg_} Failed! {time() - t0:.2f}s")
 
