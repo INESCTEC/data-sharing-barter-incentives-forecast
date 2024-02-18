@@ -189,7 +189,7 @@ class MarketController:
         """
         # Check current open session:
         open_session = self.api.list_last_session(status='open')
-        logger.info("Current 'CLOSED' session:")
+        logger.info("Current 'OPEN' session:")
         logger.info(open_session)
         logger.info("")
 
