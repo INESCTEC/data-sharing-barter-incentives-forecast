@@ -1,4 +1,4 @@
-# VALOREM - Data Market Engine
+# Data Sharing Barter Incentives - Collaborative Forecasting Engine
 
 -----------------------------------------------------
 

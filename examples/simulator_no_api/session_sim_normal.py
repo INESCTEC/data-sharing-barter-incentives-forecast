@@ -7,7 +7,7 @@ from copy import deepcopy
 from loguru import logger
 
 # -- If needed to run via command line, add root proj to sys path:
-# sys.path.append(r"<path_to_project>/valorem-market")
+# sys.path.append(r"<path_to_project>/data-sharing-barter-incentives-forecast")
 from src.market import MarketClass
 from src.market.helpers.units_helpers import (
     convert_session_data_to_mi,

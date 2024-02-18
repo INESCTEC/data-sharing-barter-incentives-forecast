@@ -30,7 +30,7 @@ st.markdown(style, unsafe_allow_html=True)
 style = "<style>h3 {text-align: center;}</style>"
 st.markdown(style, unsafe_allow_html=True)
 
-st.header('Valorem-Data Analytics')
+st.header('Predico-Data Analytics')
 st.subheader('Standard')
 path_report = st.selectbox(
     'Enter the folder path for STANDARD REPORT',
