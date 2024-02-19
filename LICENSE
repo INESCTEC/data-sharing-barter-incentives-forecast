@@ -14,7 +14,6 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU Affero General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 This program makes use and is distributed with the following libraries:
-* Name of the library: (library link)
 loguru	        (https://github.com/Delgan/loguru)
 pytz	        (https://github.com/stub42/pytz)
 flake8	        (https://github.com/PyCQA/flake8)
