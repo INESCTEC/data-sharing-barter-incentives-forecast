@@ -1,1 +1,0 @@
-All users are buyers/sellers. And all users bid equal to market price.
