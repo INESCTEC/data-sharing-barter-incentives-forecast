@@ -26,15 +26,15 @@ if __name__ == '__main__':
     # Set base simulation parameters:
     N_JOBS = 1
     simulation_params = {
-        "dataset_path": "files/datasets/linear_relevant_irrelevant_2_5",
+        "dataset_path": "files/datasets/example_1",
         "report_name_suffix": "spearman",
         "auto_feature_selection": True,
         "auto_feature_engineering": True,
         "bids_scenario": "scenario_1",
         "nr_sessions": 10,
-        "first_lt_utc": "2020-05-01T10:00:00Z",
+        "first_lt_utc": "2021-01-10T00:00:00Z",
         "session_freq": 1,
-        "datetime_fmt": "%Y-%m-%d %H:%M:%S",
+        "datetime_fmt": "%Y-%m-%d %H:%M",
         "delimiter": ","
     }
 

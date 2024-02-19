@@ -94,7 +94,7 @@ class SimulatorManager:
             end=self.first_lt_utc + pd.DateOffset(
                 hours=self.session_freq * nr_sessions
             ),
-            freq="H"
+            freq="h"
         )
         self.SESSIONS_LIST = [(i, lt) for i, lt in enumerate(self.SESSIONS_LAUNCH_TIME)]  # noqa
 
