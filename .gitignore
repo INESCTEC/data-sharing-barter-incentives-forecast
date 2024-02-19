@@ -4,8 +4,6 @@ examples/simulator_no_api/simulation/datasets/
 
 .idea/
 .vscode/
-examples/files
-!examples/simulator_no_api/files/datasets/example_1
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
