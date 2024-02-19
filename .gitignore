@@ -1,8 +1,11 @@
 !.gitkeep
 *.csv
+examples/simulator_no_api/simulation/datasets/
+examples/simulator_no_api/simulation/reports/
 
 .idea/
 .vscode/
+examples/files
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

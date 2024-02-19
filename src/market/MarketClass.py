@@ -76,6 +76,14 @@ class MarketClass:
         self.forecast_end = None
         self.forecast_range = None
 
+        if not self.auto_feature_engineering:
+            logger.warning("Disabling auto_feature_engineering might affect "
+                           "the number of features available in the market "
+                           "dataset, for each buyer. To disable this, make "
+                           "sure that you have sellers / buyers providing "
+                           "their own 'features' (future available data) in "
+                           "their participation in the market session.")
+
     def activate_debug_mode(self):
         self.DEBUG = True
         self.db_uploads = False
@@ -411,7 +419,7 @@ class MarketClass:
         buyer_feat_.columns = [f"self__{x}" for x in suggested_features]
         feat_df = feat_df.join(buyer_feat_)
 
-        if self.auto_feature_engineering:
+        if True:
             from .preprocessing.feature_engineering.autocorrelation import autocorrelation_analysis  # noqa
             from .preprocessing.feature_engineering.construct_inputs_funcs import construct_inputs_from_lags  # noqa
             target_col = "target"
@@ -514,6 +522,15 @@ class MarketClass:
             market_features=market_x_full,
             expected_dates=market_x_full.index,
         )
+        if buyer_x.empty:
+            logger.warning(f"Buyer {user_id} resource {resource_id} "
+                           f"features dataset is empty. Aborting forecast.")
+            return {
+                "resource_id": resource_id,
+                "user_id": user_id,
+                "forecasts": None
+            }
+
         # Select market features (all agents but buyer_id)
         logger.debug("Selecting market features ...")
         # -- Remove features from this user not suggested for this forecast
@@ -772,7 +789,7 @@ class MarketClass:
 
         # -- 2. Create market features
         market_x_full = self.__create_market_features(market_df=market_df)
-
+        print()
         # -- 3. Process payment & forecasts for each buyer resource
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(
