@@ -4,10 +4,12 @@
 
 [![version](https://img.shields.io/badge/version-0.0.1-blue.svg)]()
 [![status](https://img.shields.io/badge/status-development-yellow.svg)]()
-[![Python Version](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![Python Version](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-360/)
 
-Preliminary documentation available at the project `docs/` directory.
+## Requirements
 
+* [Python 3.10+](https://www.python.org/downloads/)
+* [Pip ^21.x](https://pypi.org/project/pip/)
 
 ## Project Structure:
 
@@ -18,7 +20,6 @@ The following directory structure should be considered:
 ├── conf  # project settings
 ├── docs  # useful docs
 ├── examples  # example scripts (includes simulation decoupled from DB + REST)
-├── packages  # project packages (i.e., precompiled versions of external packages)
 ├── src  # project source code
 ├── .coveragerc  # code coverage configs
 ├── .flake8  # flake8 configs
@@ -31,10 +32,20 @@ The following directory structure should be considered:
 ├── README.md
 ├── requirements.txt  # project dependencies
 ├── run_menu.py  # interactive menu for running the market
-├── run_market_pipeline.py  # script for running the market pipeline
+├── tasks.py  # CLI interface for running the market
 ```
 
-## Initial setup:
+## Running the collaborative forecasting process in standalone mode (without REST-API / Database integration):
+
+It is possible to execute the collaborative forecasting engine in standalone mode, without the need for a REST-API or database integration.
+For that, please check the `examples` directory, which includes a script for running the market pipeline in standalone mode.
+
+**Please check the explanation and tutorial available on the [Examples README](examples/README.md) file.**
+
+
+## Deploying the collaborative forecasting engine in a production environment:
+
+### Initial setup:
 
 > **_NOTE:_**  The commands below assume that you are running them from the root directory of the project (`energy_app/`)
 
@@ -76,12 +87,12 @@ Also, only 'simulation' functionalities (i.e., without integration with the data
         $ python run_menu.py
     ```
 
-### How to run:
+### Running the interactive menu:
+
+An interactive menu is available to preview and execute the multiple functionalities of this module.
 
 > **_NOTE 1:_**  The following instructions assume that the data market database and REST API are already initialized (available in other projects).
 > **_NOTE 2:_**  The commands below assume that you are running them from the root directory of the project (`energy_app/`)
-
-Run the market interactive menu:
 
 #### With Docker:
 
@@ -94,6 +105,42 @@ Run the market interactive menu:
 ```shell
     $ python run_menu.py
   ```
+
+### Using the Command Line Interface (CLI):
+
+Alternatively, you can run the market pipeline directly, relying on the CLI interface. 
+This is useful for running the market pipeline in a non-interactive way (e.g., in a production environment).
+
+> **_NOTE:_**  The commands below assume that you are running them from the root directory of the project (`energy_app/`)
+> **_NOTE:_**  The following instructions assume that the data market database and REST API are already initialized (available in other projects).
+
+**_WARNING:_**  The following command will run the market pipeline with the settings specified in the `.env` file.
+
+#### With Docker:
+
+#### Open market session:
+
+```shell
+   $ docker compose run --rm app python tasks.py open_session
+```
+
+#### Approve market bids:
+
+```shell
+   $ docker compose run --rm app python tasks.py approve_market_bids
+```
+
+#### Run market session:
+
+ ```shell
+    $ docker compose run --rm app python tasks.py run_session
+ ```
+
+#### Validate market-to-agents transfers:
+
+```shell
+    $ docker compose run --rm app python tasks.py validate_transfer_out
+ ```
 
 
 ## Contacts:
