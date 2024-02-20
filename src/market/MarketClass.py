@@ -570,15 +570,19 @@ class MarketClass:
                 nr_feature_selected=nr_feat_sel)
 
         # -- Features & targets arrays:
-        sellers_features_name = list(market_x.columns)
         train_features, train_targets, test_features = self.__process_features(
             market_x=market_x,
             buyer_x=buyer_x,
             buyer_y=buyer_y,
         )
 
-        # -- Convert train data to numpy arrays (speed up)
+        # Get features names and indexes
+        sellers_features_name = list(market_x.columns)
+        buyer_features_name = list(buyer_x.columns)
         train_features_name = list(train_features.columns)
+        sellers_features_idx = [train_features_name.index(x) for x in sellers_features_name]
+        buyer_features_idx = [train_features_name.index(x) for x in buyer_features_name]
+        # -- Convert train data to numpy arrays (speed up)
         train_features = train_features.values
         train_targets = train_targets.values
         # features = market_x.join(buyer_x).values
@@ -600,6 +604,8 @@ class MarketClass:
                 b_max=self.mkt_sess.b_max,
                 epsilon=self.mkt_sess.epsilon,
                 n_hours=self.N_HOURS,
+                buyer_features_idx=buyer_features_idx,
+                sellers_features_idx=sellers_features_idx
             )
             if payment <= max_payment:
                 # Finish process if payment <= max_payment
@@ -658,6 +664,8 @@ class MarketClass:
             "user_id": user_id,
             "buyer_features_name": list(buyer_x.columns),
             "sellers_features_name": sellers_features_name,
+            "buyer_features_idx": buyer_features_idx,
+            "sellers_features_idx": sellers_features_idx,
             "forecasts": forecasts
         }
 
@@ -679,8 +687,8 @@ class MarketClass:
                     buyer_resource_payment=input_kwargs["payment"],
                     buyer_market_fee=input_kwargs["market_fee"],
                     sellers_id_list=sellers_id_list,
-                    buyer_features_name=input_kwargs["buyer_features_name"],
                     sellers_features_name=input_kwargs["sellers_features_name"],  # noqa
+                    buyer_features_idx=input_kwargs["buyer_features_idx"],
                     K=self.REVENUE_K,
                     lambd=self.REVENUE_LAMBDA,
                     n_hours=self.N_HOURS,
@@ -748,10 +756,12 @@ class MarketClass:
 
     def set_forecast_range(self):
         self.forecast_start = self.launch_time.replace(minute=0, second=0, microsecond=0)
-        self.forecast_end = self.launch_time + pd.DateOffset(hours=self.FORECAST_HORIZON)  # noqa
+        self.forecast_end = self.forecast_start + pd.DateOffset(hours=self.FORECAST_HORIZON)  # noqa
         self.forecast_range = pd.date_range(start=self.forecast_start,
                                             end=self.forecast_end,
-                                            freq='h', tz=self.MARKET_TZ)[:-1]
+                                            freq='h',
+                                            tz=self.MARKET_TZ,
+                                            inclusive="right")
 
     def define_payments_and_forecasts(self):
         """
@@ -789,7 +799,7 @@ class MarketClass:
 
         # -- 2. Create market features
         market_x_full = self.__create_market_features(market_df=market_df)
-        print()
+
         # -- 3. Process payment & forecasts for each buyer resource
         self.buyer_outputs = Parallel(n_jobs=self.n_jobs)(
             delayed(
@@ -829,6 +839,8 @@ class MarketClass:
                 targets=input_kwargs["targets"],
                 gain_func=input_kwargs["gain_func"],
                 bid_price=input_kwargs["initial_bid"],
+                buyer_features_idx=input_kwargs["buyer_features_idx"],
+                sellers_features_idx=input_kwargs["sellers_features_idx"],
                 n_jobs=self.n_jobs
             )
             logger.debug(f"Current price weights: {price_weights}")
