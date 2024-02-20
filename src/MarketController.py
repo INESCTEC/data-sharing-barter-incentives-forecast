@@ -659,7 +659,7 @@ class MarketController:
                         logger.debug(f"Transfer out response: {response}")
                     except WalletTransferOutException:
                         logger.error(f"Failed to register transfer out "
-                                     f"operation for withdraw ID: {tid.id}")
+                                     f"operation for withdraw ID: {tid['withdraw_transfer_id']}")
                         continue
             else:
                 logger.error(f"Transfer output Txn {tangle_msg_id} is invalid!")  # noqa
