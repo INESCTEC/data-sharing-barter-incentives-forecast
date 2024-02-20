@@ -725,19 +725,21 @@ class MarketClass:
     def validate_session_results(self, raise_exception=True):
         # Confirm if there are no errors in market session results:
         fee = self.mkt_sess.total_market_fee
+        deposits = [v["max_payment"] for k, v in self.mkt_sess.buyers_results.items()]
         payments = [v["has_to_pay"] for k, v in self.mkt_sess.buyers_results.items()]
         revenues = [v["has_to_receive"] for k, v in self.mkt_sess.sellers_results.items()]
         logger.info("")
         logger.info("Validating session results:")
         logger.debug("Market fee:", self.mkt_sess.total_market_fee)
-        logger.debug("Buyers payments:")
-        logger.debug(payments)
-        logger.debug("Total Buyers payments:", sum(payments))
-        logger.debug("Sellers revenue:")
-        logger.debug(revenues)
-        logger.debug("Total Sellers Revenue:", sum(revenues))
+        logger.debug(f"Buyers deposits: {deposits} // Total: {sum(deposits)}")
+        logger.debug(f"Buyers payments: {payments} // Total: {sum(payments)}")
+        logger.debug(f"Sellers revenue: {revenues} // Total: {sum(revenues)}")
+        logger.debug(f"Market fee: {fee}")
         result = sum(payments) - fee - sum(revenues)
-        logger.debug(f"Validation: {sum(payments)} - {fee} - {sum(revenues)} = {result}")
+        logger.debug(f"""
+        Validation (1) - Buyer payments should be distributed by market (fees) and sellers revenues
+        Payments({sum(payments)}) - Market({fee}) - Revenues({sum(revenues)}) = Zero({result})
+        """)
         is_valid = round(result, 9) == 0.0
         logger.info(f"Valid Session: {is_valid}")
         if (not is_valid) and raise_exception:
