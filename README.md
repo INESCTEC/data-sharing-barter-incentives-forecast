@@ -40,7 +40,7 @@ The following directory structure should be considered:
 It is possible to execute the collaborative forecasting engine in standalone mode, without the need for a REST-API or database integration.
 For that, please check the `examples` directory, which includes a script for running the market pipeline in standalone mode.
 
-**Please check the explanation and tutorial available on the [Examples README](examples/README.md) file.**
+**Please check the explanation and tutorial available on the [Examples README](examples/simulator_no_api/README.md) file.**
 
 
 ## Deploying the collaborative forecasting engine in a production environment:
