@@ -53,8 +53,9 @@ def calc_gain(buyer_err, market_err, targets):
 
 
 def generate_noise_per_feature(features):
-    np.random.seed(1)  # todo: @Ricardo remove this seed
-    sigma_feat = 0.5 * features.std(axis=0)[:-1]  # todo: mult. por 0.5?
+    # np.random.seed(1)  # Disable for production
+    # sigma_feat = 0.5 * features.std(axis=0)  # Versao carla
+    sigma_feat = features.std(axis=0)
     noise = np.zeros(shape=features.shape)
     for i, sigma in enumerate(sigma_feat):
         noise[:, i] = np.random.normal(0, sigma, (features.shape[0], ))
@@ -62,7 +63,7 @@ def generate_noise_per_feature(features):
 
 
 def generate_noise(features):
-    np.random.seed(1)  # todo: @Ricardo remove this seed
+    # np.random.seed(1)  # Disable for production
     sigma = 0.5 * pd.DataFrame(features).std(axis=0).mean()
     noise = np.random.normal(0, sigma, features.shape)
     noise[:, -1] = 0
@@ -91,18 +92,29 @@ def calculate_gain(
 
     :return:
     """
+    features = features.copy()
+
     # 1) Train & evaluate model w/ buyer features
+    if len(buyer_feature_pos) > 1:
+        buyer_feat = features[:, buyer_feature_pos]
+    else:
+        buyer_feat = features[:, buyer_feature_pos].reshape(-1, 1)
+
     buyer_err = calc_forecast_error(
-        X=features[:, buyer_feature_pos].reshape(-1, 1),
+        X=buyer_feat,
         y=targets,
         n_hours=n_hours,
         gain_func=gain_func,
     )
     # 2) Train & evaluate model w/ buyer + market features
-    # input_x = market_x.join(buyer_x)
+    if any([x in buyer_feature_pos for x in market_features_pos]):
+        raise ValueError("Market features cannot be the "
+                         "same as buyer features.")
+
     if market_features_pos is not None:
         pos_ = np.append(market_features_pos, buyer_feature_pos)
         features = features[:, pos_]
+
     market_err = calc_forecast_error(
         X=features,
         y=targets,
@@ -119,34 +131,44 @@ def calculate_gain(
 
 
 def calculate_noise_and_gain(
+        bid_price: float,
         features,
         targets,
         gain_func,
         n_hours: int,
         market_price: float,
         b_max: float,
-        bid_price: float,
+        buyer_features_idx,
+        sellers_features_idx,
 ):
 
     # noise = generate_noise(features=features)
-    noise = generate_noise_per_feature(features=features)
+    sellers_features = features[:, sellers_features_idx]
+    noise = generate_noise_per_feature(features=sellers_features)
+
     # todo: rever ratio
     # Nota1: Versão carla acaba por adicionar mt ruido para diferenças % baixas
     # em valores elevados de market price / bid price
     # -- Versão Carla
-    ratio_ = max(0, market_price - bid_price)
+    # ratio_ = max(0, market_price - bid_price)
     # -- Nova Versão:
     # Nota2: Versão nova parece penalizar pouco estas diferenças, especialmente
     # no cálculo de ganho para varios niveis de preço
     # Ver variavel I_ -> metodo calc_buyer_payment()
-    # ratio_ = max(0, market_price - bid_price) / b_max
+    ratio_ = max(0, market_price - bid_price) / market_price
     # ratio_ = max(0, 1 - bid_price / market_price) * b_max
-    noisy_features = (features + ratio_ * noise)
+    noisy_sellers_features = (sellers_features + ratio_ * noise)
+
+    noisy_features = features.copy()
+    noisy_features[:, sellers_features_idx] = noisy_sellers_features
+
     gain = calculate_gain(
         features=noisy_features,
         targets=targets,
         gain_func=gain_func,
-        n_hours=n_hours
+        n_hours=n_hours,
+        buyer_feature_pos=buyer_features_idx,
+        market_features_pos=sellers_features_idx,
     )
     return noisy_features, gain
 

@@ -24,4 +24,6 @@ def test_buyers_output_attrs(market_session_2u_1r):
                                                   'sellers_features_name',
                                                   'targets',
                                                   'train_features_name',
-                                                  'user_id'])
+                                                  'user_id',
+                                                  'buyer_features_idx',
+                                                  'sellers_features_idx'])
