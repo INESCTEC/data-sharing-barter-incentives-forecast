@@ -1,0 +1,16 @@
+requests
+scikit-learn
+pandas
+numpy
+loguru
+flake8
+coverage
+pytest
+python-dotenv
+psycopg2
+sqlalchemy
+pytest-cov
+joblib
+pingouin
+fire
+git+https://gitlab.inesctec.pt/data-sharing-barter-incentives/payment-service.git

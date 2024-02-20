@@ -1,0 +1,33 @@
+RUN_REAL_MARKET=false
+
+# Market configs
+MARKET_EMAIL=market_email
+MARKET_PASSWORD=market_password
+
+# Database configs:
+POSTGRES_HOST=db_host
+POSTGRES_DB=db_name
+POSTGRES_USER=db_user
+POSTGRES_PASSWORD=db_password
+POSTGRES_PORT=db_port
+
+# URI:
+RESTAPI_HOST=rest_api_host
+RESTAPI_PORT=rest_api_port
+N_REQUEST_RETRIES=n_request_retries
+
+# IOTA configs:
+IOTA_NODE_URL=https://api.testnet.shimmer.network
+IOTA_FAUCET_URL=https://faucet.testnet.shimmer.network
+
+# Wallet Configs:
+MINIMUM_WITHDRAW_AMOUNT = 1000000
+STRONG_WALLET_KEY=strong_wallet_key
+WALLET_NAME = wallet_name
+STORAGE_PATH=files
+WALLET_BACKUP_PATH=files
+FILE_DIR=files
+
+# Other configs:
+N_JOBS=-1
+GITLAB_TOKEN=gitlab_token_here

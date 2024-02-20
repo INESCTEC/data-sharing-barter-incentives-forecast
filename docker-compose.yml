@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+
+  app:
+    build:
+      context: .
+      args:
+        - GITLAB_TOKEN
+    container_name: predico-forecast
+    volumes:
+      - storage:/app/files
+      - ./files/logs/:/app/files/logs
+    env_file:
+      - .env
+
+volumes:
+  storage:
