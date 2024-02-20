@@ -53,8 +53,9 @@ def calc_gain(buyer_err, market_err, targets):
 
 
 def generate_noise_per_feature(features):
-    np.random.seed(1)  # todo: @Ricardo remove this seed
-    sigma_feat = 0.5 * features.std(axis=0)[:-1]  # todo: mult. por 0.5?
+    # np.random.seed(1)  # Disable for production
+    # sigma_feat = 0.5 * features.std(axis=0)  # Versao carla
+    sigma_feat = features.std(axis=0)
     noise = np.zeros(shape=features.shape)
     for i, sigma in enumerate(sigma_feat):
         noise[:, i] = np.random.normal(0, sigma, (features.shape[0], ))
@@ -62,7 +63,7 @@ def generate_noise_per_feature(features):
 
 
 def generate_noise(features):
-    np.random.seed(1)  # todo: @Ricardo remove this seed
+    # np.random.seed(1)  # Disable for production
     sigma = 0.5 * pd.DataFrame(features).std(axis=0).mean()
     noise = np.random.normal(0, sigma, features.shape)
     noise[:, -1] = 0
@@ -149,12 +150,12 @@ def calculate_noise_and_gain(
     # Nota1: Versão carla acaba por adicionar mt ruido para diferenças % baixas
     # em valores elevados de market price / bid price
     # -- Versão Carla
-    ratio_ = max(0, market_price - bid_price)
+    # ratio_ = max(0, market_price - bid_price)
     # -- Nova Versão:
     # Nota2: Versão nova parece penalizar pouco estas diferenças, especialmente
     # no cálculo de ganho para varios niveis de preço
     # Ver variavel I_ -> metodo calc_buyer_payment()
-    # ratio_ = max(0, market_price - bid_price) / b_max
+    ratio_ = max(0, market_price - bid_price) / market_price
     # ratio_ = max(0, 1 - bid_price / market_price) * b_max
     noisy_sellers_features = (sellers_features + ratio_ * noise)
 
