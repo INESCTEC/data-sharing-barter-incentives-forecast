@@ -150,7 +150,8 @@ If you have any questions regarding this project, please contact the following p
 Developers (SW source code / methodology questions):
   - José Andrade <jose.r.andrade@inesctec.pt>
   - André Garcia <andre.f.garcia@inesctec.pt>
+  - Giovanni Buroni <giovanni.buroni@inesctec.pt>
+  - Carla Gonçalves <carla.s.goncalves@inesctec.pt>
 
 Contributors / Reviewers (methodology questions):
-  - Carla Gonçalves <carla.s.goncalves@inesctec.pt>
   - Ricardo Bessa <ricardo.j.bessa@inesctec.pt>
