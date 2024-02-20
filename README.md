@@ -47,7 +47,7 @@ For that, please check the `examples` directory, which includes a script for run
 
 ### Initial setup:
 
-> **_NOTE:_**  The commands below assume that you are running them from the root directory of the project (`energy_app/`)
+> **_NOTE:_**  The commands below assume that you are running them from the root directory of the project (`data-sharing-barter-incentives-forecast/`)
 
 
 ### Configure environment variables:
@@ -92,7 +92,7 @@ Also, only 'simulation' functionalities (i.e., without integration with the data
 An interactive menu is available to preview and execute the multiple functionalities of this module.
 
 > **_NOTE 1:_**  The following instructions assume that the data market database and REST API are already initialized (available in other projects).
-> **_NOTE 2:_**  The commands below assume that you are running them from the root directory of the project (`energy_app/`)
+> **_NOTE 2:_**  The commands below assume that you are running them from the root directory of the project (`data-sharing-barter-incentives-forecast/`)
 
 #### With Docker:
 
@@ -111,7 +111,7 @@ An interactive menu is available to preview and execute the multiple functionali
 Alternatively, you can run the market pipeline directly, relying on the CLI interface. 
 This is useful for running the market pipeline in a non-interactive way (e.g., in a production environment).
 
-> **_NOTE:_**  The commands below assume that you are running them from the root directory of the project (`energy_app/`)
+> **_NOTE:_**  The commands below assume that you are running them from the root directory of the project (`data-sharing-barter-incentives-forecast/`)
 > **_NOTE:_**  The following instructions assume that the data market database and REST API are already initialized (available in other projects).
 
 **_WARNING:_**  The following command will run the market pipeline with the settings specified in the `.env` file.
