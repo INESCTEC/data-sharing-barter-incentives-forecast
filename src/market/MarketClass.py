@@ -371,7 +371,7 @@ class MarketClass:
         feat_df.dropna(how="all", inplace=True)
         feat_df.bfill(limit=2, inplace=True)
         feat_df.fillna(0, inplace=True)
-
+        feat_df = feat_df.asfreq('h')
         logger.info("Creating market features ... Ok!")
         return feat_df
 
@@ -783,7 +783,7 @@ class MarketClass:
         """
         logger.info("-" * 70)
         logger.info(f"Running session {self.mkt_sess.session_id}...")
-        if len(self.buyers_data) <= 1:
+        if len(self.buyers_data) == 0:
             e_msg = "Error! Insufficient buyers bids to start a new session."
             logger.error(e_msg)
             raise NoMarketBuyersExceptions(e_msg)
