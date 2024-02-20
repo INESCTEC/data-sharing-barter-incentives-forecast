@@ -111,7 +111,9 @@ class AgentsLoader:
         _ts = dataset[:end_date].index
 
         for resource_id in self.measurements_list:
-            _v = dataset.loc[:end_date, f"{resource_id}"].dropna().values
+            _v = dataset.loc[:end_date, f"{resource_id}"].dropna()
+            _ts = _v.index
+            _v = _v.values
             self.measurements[resource_id] = pd.DataFrame({
                 "datetime": _ts,
                 "value": _v,
