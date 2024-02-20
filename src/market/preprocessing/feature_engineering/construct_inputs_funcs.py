@@ -39,7 +39,6 @@ def construct_lagged(df, target, lag_type, lag, lag_tz, infer_dst_lags):
         freq_multiplier = idx_original.freqstr
         if freq_multiplier != 'H':
             # freq_multiplier = '1H'
-            # todo: Adapt code for different frequencies
             raise ValueError(
                 "It is only possible to infer dst lags on timeseries with "
                 "hourly frequency.")
