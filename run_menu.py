@@ -144,8 +144,8 @@ def market_menu():
         print("     Market OPS MENU")
         print("1  - Open market session")
         print("2  - Get bids for latest market session")
-        print("3  - Close market session")
-        print("4  - Approve market bids")
+        print("3  - Approve market bids")
+        print("4  - Close market session")
         print("5  - Run market session")
         print("6  - Get users market balance")
         print("7  - Transfer token balance back to agents")
@@ -176,20 +176,20 @@ def market_menu():
                 logger.exception("Failed to list bids.")
         elif choice == "3":
             try:
-                # Close market session (no more bids):
-                market.close_market_session()
-            except (NoMarketSessionException, MarketSessionException) as ex:
-                logger.error(ex)
-            except Exception:
-                logger.exception("Failed to close session.")
-        elif choice == "4":
-            try:
                 # Approve buyers bids:
                 market.approve_buyers_bids()
             except (NoMarketSessionException, MarketSessionException) as ex:
                 logger.error(ex)
             except Exception:
                 logger.exception("Failed to approve bids.")
+        elif choice == "4":
+            try:
+                # Close market session (no more bids):
+                market.close_market_session()
+            except (NoMarketSessionException, MarketSessionException) as ex:
+                logger.error(ex)
+            except Exception:
+                logger.exception("Failed to close session.")
         elif choice == "5":
             try:
                 # Run market session:
