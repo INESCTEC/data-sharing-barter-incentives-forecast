@@ -232,7 +232,7 @@ def shapley_robust(buyer_features_idx, Y, X, K, lambd, n_hours, gain_func):
     elif M == 1:
         # if there is only 1 feature beside buyers features, send all revenue
         # to that seller feature
-        return 1
+        return [1]
     else:
         # Create one coefficient for each feature
         phi_ = np.repeat(0.0, M)
