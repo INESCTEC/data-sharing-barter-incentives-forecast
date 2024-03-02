@@ -668,4 +668,3 @@ class MarketController:
                 all_successful = False
 
         return all_successful
-

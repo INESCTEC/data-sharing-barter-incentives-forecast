@@ -145,14 +145,14 @@ class MarketClass:
         logger.info("-" * 70)
         logger.info(f">> Session {self.mkt_sess.session_id} results:")
         logger.info("-" * 70)
-        logger.info(f">>>> Per user & resource:")
+        logger.info(">>>> Per user & resource:")
         logger.info(f"Buyers:\n"
                     f"{json.dumps(self.mkt_sess.buyers_results, indent=2)}")
         logger.info("-")
         logger.info(f"Sellers:\n"
                     f"{json.dumps(self.mkt_sess.sellers_results, indent=2)}")
         logger.info("-" * 70)
-        logger.info(f">>>> General (aggregated view):")
+        logger.info(">>>> General (aggregated view):")
         logger.info(f"Buyers:\n{json.dumps(self.mkt_sess.buyer_payment_per_user, indent=2)}")  # noqa
         logger.info("-")
         logger.info(f"Sellers:\n{json.dumps(self.mkt_sess.seller_revenue_per_user, indent=2)}")  # noqa
