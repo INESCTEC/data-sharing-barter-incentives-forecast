@@ -58,8 +58,10 @@ def calc_buyer_payment(
         # Rectangular Integration
         # >> approximates the integral of a function with a rectangle
         # 'xaxis' contains a range of prices where gain will be evaluated at
-        I_ = sum([f(v)[1] for v in xaxis]) * (xaxis[1] - xaxis[0])
-        payment = max(0, bid_price * gain - I_)
+        # I_ = sum([f(v)[1] for v in xaxis]) * (xaxis[1] - xaxis[0])
+        # payment = max(0, bid_price * gain - I_)
+        payment = max(0, bid_price * gain)
+
     return noisy_features, gain, payment
 
 
