@@ -125,8 +125,12 @@ class Controller(RequestController):
             exception_cls=UserWalletException
         )
         if len(response['data']) == 0:
-            logger.error(f"No address found for user {user_id}")
-            raise UserWalletException
+            _msg = f"No address found for user {user_id}"
+            logger.error(_msg)
+            raise UserWalletException(
+                message=_msg,
+                errors=response
+            )
         else:
             return response['data'][0]["wallet_address"]
 
@@ -233,7 +237,6 @@ class Controller(RequestController):
         return response['data']
 
     def list_last_session(self, status: str = None):
-        # todo: ir logo buscar só uma sessao pela rest (e.g. query limit 1)
         params = {"latest_only": True}
         if status is not None:
             params["status"] = status
