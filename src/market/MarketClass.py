@@ -45,7 +45,7 @@ from src.market.helpers.units_helpers import convert_mi_to_i
 class MarketClass:
     DEBUG = False
     N_HOURS = 24 * 31                  # no. hours in evaluation period
-    FORECAST_HORIZON = 1               # forecast horizon in market
+    FORECAST_HORIZON = settings.MARKET_FORECAST_HORIZON  # forecast horizon
     N_HOURS_IN_HIST = 8760             # no. hours in historical data
     MARKET_FEE_PCT = 0.05              # market fee applied to buyer payment
     REVENUE_K = 5
