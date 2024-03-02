@@ -1,12 +1,14 @@
 import numpy as np
 
+from typing import Union
 from dataclasses import dataclass, field
+
 from .helpers.class_helpers import ValidatorClass
 
 
 @dataclass()
 class UserClass(ValidatorClass):
-    user_id: int = None
+    user_id: Union[int, str] = None
     user_features_list: list = field(default_factory=list)
     total_payment: np.float64 = np.float64(0.0)
     total_revenue: np.float64 = np.float64(0.0)

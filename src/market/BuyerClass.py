@@ -1,15 +1,17 @@
 import numpy as np
 import pandas as pd
 
+from typing import Union
 from dataclasses import dataclass, field
+
 from .helpers.class_helpers import ValidatorClass
 
 
 @dataclass()
 class BuyerClass(ValidatorClass):
-    market_bid_id: int = None           # Bid identifier
-    resource_id: int = None             # Bid resource identifier
-    user_id: int = None                 # Bid user identifier
+    market_bid_id: Union[int, str] = None           # Bid identifier
+    resource_id: Union[int, str] = None             # Bid resource identifier
+    user_id: Union[int, str] = None                 # Bid user identifier
     gain_func: str = None               # Bid gain function
     initial_bid: np.float64 = None      # Bid initial bid_price
     max_payment: np.float64 = None      # Bid max payment

@@ -45,25 +45,25 @@ def session_data_template():
 
 def buyer_bid_template():
     return {
-            "id": 1,
+            "id": "1",
             "max_payment": 7000000,
             "bid_price": 5500000,
             "gain_func": "mse",
             "confirmed": True,
             "registered_at": "2021-12-21T11:41:35.532381Z",
             "has_forecasts": False,
-            "user": 2,
-            "resource": 1,
+            "user": "2",
+            "resource": "1",
             "market_session": 1
         }
 
 
 def user_resources_template():
     return {
-            "id": 1,
+            "id": "1",
             "name": "resource-4",
             "type": "measurements",
             "to_forecast": True,
             "registered_at": "2021-12-20T19:06:33.773648Z",
-            "user": 2
+            "user": "2"
         }
