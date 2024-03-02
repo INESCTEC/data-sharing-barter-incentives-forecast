@@ -81,6 +81,40 @@ class SessionClass(ValidatorClass):
             "market_fee_per_resource": self.market_fee_per_resource,
         }
 
+    @property
+    def buyer_payment_per_user(self):
+        # Get list of payments per user_id
+        users_ = [(x['user_id'], x["has_to_pay"])
+                  for x in self.buyers_results.values()]
+
+        # Create a dictionary to store the sum of second elements
+        # for each first element
+        result = {}
+        for key, value in users_:
+            result[key] = result.get(key, 0) + value
+
+        output = [{"user": key, "has_to_pay": value}
+                  for key, value in result.items()]
+
+        return output
+
+    @property
+    def seller_revenue_per_user(self):
+        # Get list of payments per user_id
+        users_ = [(x['user_id'], x["has_to_receive"])
+                  for x in self.sellers_results.values()]
+
+        # Create a dictionary to store the sum of second elements
+        # for each first element
+        result = {}
+        for key, value in users_:
+            result[key] = result.get(key, 0) + value
+
+        output = [{"user": key, "has_to_receive": value}
+                  for key, value in result.items()]
+
+        return output
+
     def set_previous_price_weights(self, weights_p):
         self.prev_weights_p = weights_p
 

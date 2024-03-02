@@ -143,15 +143,26 @@ class MarketClass:
     def show_session_results(self):
         import json
         logger.info("-" * 70)
-        logger.info(f"Session ID: {self.mkt_sess.session_id}")
+        logger.info(f">> Session {self.mkt_sess.session_id} results:")
+        logger.info("-" * 70)
+        logger.info(f">>>> Per user & resource:")
         logger.info(f"Buyers:\n"
                     f"{json.dumps(self.mkt_sess.buyers_results, indent=2)}")
         logger.info("-")
         logger.info(f"Sellers:\n"
                     f"{json.dumps(self.mkt_sess.sellers_results, indent=2)}")
+        logger.info("-" * 70)
+        logger.info(f">>>> General (aggregated view):")
+        logger.info(f"Buyers:\n{json.dumps(self.mkt_sess.buyer_payment_per_user, indent=2)}")  # noqa
         logger.info("-")
-        logger.info(f"Market Session:"
-                    f"\n{json.dumps(self.mkt_sess.details, indent=2)}")
+        logger.info(f"Sellers:\n{json.dumps(self.mkt_sess.seller_revenue_per_user, indent=2)}")  # noqa
+        logger.info("-")
+        logger.info(f"Market (fees): \n"
+                    f"Total: "
+                    f"{self.mkt_sess.details['total_market_fee']}\n"
+                    f"Per resource:\n"
+                    f"{json.dumps(self.mkt_sess.details['market_fee_per_resource'], indent=2)}")  # noqa
+        logger.info("-" * 70)
 
     def load_resources_bids(self, bids: list):
         if (not isinstance(bids, list)) or \
@@ -370,7 +381,7 @@ class MarketClass:
         # Data imputation:
         feat_df.dropna(how="all", inplace=True)
         feat_df.bfill(limit=2, inplace=True)
-        feat_df.fillna(0, inplace=True)
+        feat_df.fillna(feat_df.mean(), inplace=True)
         feat_df = feat_df.asfreq('h')
         logger.info("Creating market features ... Ok!")
         return feat_df
