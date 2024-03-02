@@ -1,8 +1,9 @@
-from psycopg2.errors import UniqueViolation, ForeignKeyViolation
 import pandas as pd
 import datetime as dt
 
 from loguru import logger
+from psycopg2.errors import UniqueViolation, ForeignKeyViolation
+
 from src.database.PostgresDB import PostgresDB
 
 
