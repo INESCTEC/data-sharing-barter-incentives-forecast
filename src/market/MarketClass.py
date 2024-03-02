@@ -536,9 +536,15 @@ class MarketClass:
         if buyer_x.empty:
             logger.warning(f"Buyer {user_id} resource {resource_id} "
                            f"features dataset is empty. Aborting forecast.")
+
             return {
-                "resource_id": resource_id,
+                "market_fee": 0,
+                "payment": 0,
+                "gain_func": gain_func,
+                "gain": 0,
+                "final_bid": bid_price,
                 "user_id": user_id,
+                "resource_id": resource_id,
                 "forecasts": None
             }
 
