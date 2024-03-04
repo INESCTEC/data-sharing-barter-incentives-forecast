@@ -8,7 +8,8 @@ from sklearn.metrics import (
     mean_squared_error as _mse_
 )
 
-from src.market.models.linear import linear_regression as forecast_model
+from src.market.models.linear import linear_regression_pipe as forecast_model
+from src.market.models.linear import cv_forecast, recent_hours_forecast
 
 
 """ -------------- BASE EVALUATION METRICS -------------- """
@@ -27,16 +28,12 @@ def __mse(real, pred):
 
 
 def calc_forecast_error(X, y, n_hours, gain_func="rmse"):
-    # todo: @Ricardo 1) mudar forma como é selecionado conjunto de treino/teste
-    #  Garantir que funciona para conjuntos com menos de N_HOURS disponiveis
-    # Train/test split
-    X_train = X[0:(X.shape[0] - n_hours - 1), :]
-    X_val = X[(X.shape[0] - n_hours):, :]
-    y_train = y[0:(X.shape[0] - n_hours - 1), :]
-    y_val = y[(X.shape[0] - n_hours):, :]
+    # Init forecast pipeline:
+    pipe = forecast_model()
 
-    # Generate forecasts:
-    preds = forecast_model(X_train, X_val, y_train)
+    # Compute forecasts (for recent hours or CV):
+    # preds, y_val = cv_forecast(X, y, f_pipeline=pipe)
+    preds, y_val = recent_hours_forecast(X, y, n_hours, f_pipeline=pipe)
 
     # Calculate gain (forecast error)
     if gain_func == "rmse":
@@ -189,12 +186,13 @@ def create_forecast_mock(features, targets, start_date, end_date):
 def create_forecast(train_features, train_targets, test_features_df):
     forecasts_df = pd.DataFrame(index=test_features_df.index)
     X_forecast = test_features_df.values
-    X_train = train_features
 
     # Generate forecasts:
-    preds = forecast_model(X_train, X_forecast, train_targets)
+    pipe = forecast_model()
+    pipe.fit(train_features, train_targets)
+    forecasts = pipe.predict(X_forecast)
 
     # Compute forecasts:
-    forecasts_df["value"] = preds.ravel()
+    forecasts_df["value"] = forecasts.ravel()
     forecasts_df.index.name = "datetime"
     return forecasts_df

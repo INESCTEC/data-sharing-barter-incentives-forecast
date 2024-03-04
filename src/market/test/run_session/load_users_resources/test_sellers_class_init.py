@@ -6,7 +6,7 @@ def test_load_sellers_class(session_class):
     session_class.load_users_resources(users_resources=resource_db)
 
     for i, resource in enumerate(resource_db):
-        seller_class = session_class.sellers_data[i]
+        seller_class = session_class.sellers_data[str(i)]
         seller_class.user_id = resource["user"]
         seller_class.resource_id = resource["id"]
 

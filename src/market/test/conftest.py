@@ -12,13 +12,13 @@ from .common import (
 __TEST_DATA_DIR__ = os.path.join(os.path.dirname(__file__), "files")
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def market_launch_time():
     lt = '2020-05-01 10:00:00'
     return pd.to_datetime(lt).tz_localize("UTC").to_pydatetime()
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def price_weights():
     return create_session_price_weights()
 
@@ -28,7 +28,7 @@ def session_data():
     return create_market_session_data(convert_to_miota=True)
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def session_class(market_launch_time, session_data, price_weights):
     return init_market_class(
         launch_time=market_launch_time,

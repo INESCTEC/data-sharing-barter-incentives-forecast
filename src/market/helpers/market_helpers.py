@@ -129,7 +129,7 @@ def calc_sellers_revenue(
     ])
     for j, idx in enumerate(valid_features_idx):
         feat = sellers_features_name[idx]
-        seller_resource_id = int(feat.split('__')[1])
+        seller_resource_id = feat.split('__')[1]
         logger.debug(f"seller resource {seller_resource_id} has to receive "
                      f"{pct_revenue_split[j] * buyer_resource_payment}")
         revenue_split[seller_resource_id]["pct_revenue"] += pct_revenue_split[j]

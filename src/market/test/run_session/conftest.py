@@ -7,7 +7,7 @@ from ..common import (
 from src.market.helpers.db_helpers import get_measurements_data_mock
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def market_session_3u_3r(session_class):
     # Prepare market data:
     resource_db = create_user_resource_db(nr_users=3, nr_resources_per_user=3)
@@ -24,7 +24,7 @@ def market_session_3u_3r(session_class):
     return session_class
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def market_session_2u_1r(session_class):
     # Prepare market data:
     resource_db = create_user_resource_db(nr_users=2, nr_resources_per_user=1)
@@ -40,7 +40,7 @@ def market_session_2u_1r(session_class):
     return session_class
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def market_session_2u_2r(session_class):
     # Prepare market data:
     resource_db = create_user_resource_db(nr_users=2, nr_resources_per_user=2)
@@ -56,7 +56,7 @@ def market_session_2u_2r(session_class):
     return session_class
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def market_session_3u_4r(session_class):
     # Prepare market data:
     resource_db = create_user_resource_db(nr_users=3, nr_resources_per_user=4)

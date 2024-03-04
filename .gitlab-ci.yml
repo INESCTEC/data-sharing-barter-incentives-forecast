@@ -3,7 +3,7 @@ stages:
 
 test-market:
   image:
-    name: python:3.8
+    name: python:3.12
     entrypoint: ["/usr/bin/env"]
   stage: test-market
   before_script:
