@@ -45,6 +45,7 @@ RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')
 MARKET_EMAIL = os.environ.get('MARKET_EMAIL', "")
 MARKET_PASSWORD = os.environ.get('MARKET_PASSWORD', "")
 N_JOBS = int(os.environ.get("N_JOBS", 1))
+MARKET_FORECAST_HORIZON = int(os.environ.get("MARKET_FORECAST_HORIZON", 24))
 
 # Database configs:
 DATABASES = {

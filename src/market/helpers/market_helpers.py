@@ -58,8 +58,10 @@ def calc_buyer_payment(
         # Rectangular Integration
         # >> approximates the integral of a function with a rectangle
         # 'xaxis' contains a range of prices where gain will be evaluated at
-        I_ = sum([f(v)[1] for v in xaxis]) * (xaxis[1] - xaxis[0])
-        payment = max(0, bid_price * gain - I_)
+        # I_ = sum([f(v)[1] for v in xaxis]) * (xaxis[1] - xaxis[0])
+        # payment = max(0, bid_price * gain - I_)
+        payment = max(0, bid_price * gain)
+
     return noisy_features, gain, payment
 
 
@@ -127,7 +129,7 @@ def calc_sellers_revenue(
     ])
     for j, idx in enumerate(valid_features_idx):
         feat = sellers_features_name[idx]
-        seller_resource_id = int(feat.split('__')[1])
+        seller_resource_id = feat.split('__')[1]
         logger.debug(f"seller resource {seller_resource_id} has to receive "
                      f"{pct_revenue_split[j] * buyer_resource_payment}")
         revenue_split[seller_resource_id]["pct_revenue"] += pct_revenue_split[j]
@@ -232,7 +234,7 @@ def shapley_robust(buyer_features_idx, Y, X, K, lambd, n_hours, gain_func):
     elif M == 1:
         # if there is only 1 feature beside buyers features, send all revenue
         # to that seller feature
-        return 1
+        return [1]
     else:
         # Create one coefficient for each feature
         phi_ = np.repeat(0.0, M)
