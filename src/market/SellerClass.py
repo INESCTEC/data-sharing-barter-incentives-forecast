@@ -1,14 +1,15 @@
 import numpy as np
 import pandas as pd
 
+from typing import Union
 from dataclasses import dataclass
 from .helpers.class_helpers import ValidatorClass
 
 
 @dataclass
 class SellerClass(ValidatorClass):
-    user_id: int = None                 # Resource User ID
-    resource_id: int = None             # Resource ID
+    user_id: Union[int, str] = None                 # Resource User ID
+    resource_id: Union[int, str] = None             # Resource ID
     resource_type: str = None           # Type (measurements or features)
     y: pd.DataFrame = None              # Resource measurements time-series
     has_to_receive: np.float64 = np.float64(0.0)  # Resource revenue

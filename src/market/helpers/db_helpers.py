@@ -1,8 +1,9 @@
-from psycopg2.errors import UniqueViolation, ForeignKeyViolation
 import pandas as pd
 import datetime as dt
 
 from loguru import logger
+from psycopg2.errors import UniqueViolation, ForeignKeyViolation
+
 from src.database.PostgresDB import PostgresDB
 
 
@@ -37,7 +38,7 @@ def get_measurements_data(users_resources, market_launch_time):
         logger.debug(f"Querying for resource ID {resource_id} ...")
         query = f"select datetime, value " \
                 f"from raw_data " \
-                f"where resource_id={resource_id} " \
+                f"where resource_id='{resource_id}' " \
                 f"and datetime <= '{market_launch_time}' " \
                 f"order by datetime asc;"
         data = db.read_query_pandas(query)
@@ -102,7 +103,7 @@ def update_bid_has_forecast(user_id, bid_id, table_name):
                      f"'has_forecast' field ...")
         query = f"UPDATE {table_name} " \
                 f"SET has_forecasts = true " \
-                f"WHERE id = {bid_id};"
+                f"WHERE id = '{bid_id}';"
         db.execute_query(query=query)
         logger.debug(f"Updating {user_id} - bid {bid_id} "
                      f"'has_forecast' field ... Ok!")

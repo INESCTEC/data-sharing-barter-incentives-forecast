@@ -44,8 +44,8 @@ from src.market.helpers.units_helpers import convert_mi_to_i
 
 class MarketClass:
     DEBUG = False
-    N_HOURS = 24 * 31                  # no. hours in evaluation period
-    FORECAST_HORIZON = 1               # forecast horizon in market
+    N_HOURS = 24 * 14                  # no. hours in evaluation period
+    FORECAST_HORIZON = settings.MARKET_FORECAST_HORIZON  # forecast horizon
     N_HOURS_IN_HIST = 8760             # no. hours in historical data
     MARKET_FEE_PCT = 0.05              # market fee applied to buyer payment
     REVENUE_K = 5
@@ -143,15 +143,26 @@ class MarketClass:
     def show_session_results(self):
         import json
         logger.info("-" * 70)
-        logger.info(f"Session ID: {self.mkt_sess.session_id}")
+        logger.info(f">> Session {self.mkt_sess.session_id} results:")
+        logger.info("-" * 70)
+        logger.info(">>>> Per user & resource:")
         logger.info(f"Buyers:\n"
                     f"{json.dumps(self.mkt_sess.buyers_results, indent=2)}")
         logger.info("-")
         logger.info(f"Sellers:\n"
                     f"{json.dumps(self.mkt_sess.sellers_results, indent=2)}")
+        logger.info("-" * 70)
+        logger.info(">>>> General (aggregated view):")
+        logger.info(f"Buyers:\n{json.dumps(self.mkt_sess.buyer_payment_per_user, indent=2)}")  # noqa
         logger.info("-")
-        logger.info(f"Market Session:"
-                    f"\n{json.dumps(self.mkt_sess.details, indent=2)}")
+        logger.info(f"Sellers:\n{json.dumps(self.mkt_sess.seller_revenue_per_user, indent=2)}")  # noqa
+        logger.info("-")
+        logger.info(f"Market (fees): \n"
+                    f"Total: "
+                    f"{self.mkt_sess.details['total_market_fee']}\n"
+                    f"Per resource:\n"
+                    f"{json.dumps(self.mkt_sess.details['market_fee_per_resource'], indent=2)}")  # noqa
+        logger.info("-" * 70)
 
     def load_resources_bids(self, bids: list):
         if (not isinstance(bids, list)) or \
@@ -299,8 +310,11 @@ class MarketClass:
         for seller_id, seller_cls in self.sellers_data.items():
             df_ = seller_cls.y[["value"]]
             df_ = df_.rename(columns={"value": seller_id})
-            df_ = df_.resample("h").mean()
-            market_df = market_df.join(df_, how="left")
+            if not df_.empty:
+                df_ = df_.resample("h").mean()
+                market_df = market_df.join(df_, how="left")
+            else:
+                logger.warning(f"Empty dataset for resource {seller_id}")
 
         # Check if there is no market data:
         if market_df.dropna(how="all").empty:
@@ -370,7 +384,8 @@ class MarketClass:
         # Data imputation:
         feat_df.dropna(how="all", inplace=True)
         feat_df.bfill(limit=2, inplace=True)
-        feat_df.fillna(0, inplace=True)
+        # Todo: find better imputation strategy (or drop NaN)
+        feat_df.fillna(feat_df.mean(), inplace=True)
         feat_df = feat_df.asfreq('h')
         logger.info("Creating market features ... Ok!")
         return feat_df
@@ -395,7 +410,7 @@ class MarketClass:
         """
 
         cols_to_remove_ = [resource_id] + user_features_list
-        _cols = [x for x in market_x_full.columns if int(x.split('__')[1]) not in cols_to_remove_]  # noqa
+        _cols = [x for x in market_x_full.columns if x.split('__')[1] not in cols_to_remove_]  # noqa
         # Check which of the valid cols have no NaN in forecast horizon
         check_nulls = market_x_full[_cols].loc[self.forecast_range].isnull().any()  # noqa
         # get name (index) of columns with information available
@@ -479,6 +494,8 @@ class MarketClass:
         train_targets = train_features.pop("target").to_frame()
         # Test features (variables available for all dates since launch time)
         test_features = features_.loc[self.forecast_range]
+        # Fill NaN - todo: find better imputation strategy (or drop NaN train)
+        train_features.fillna(train_features.mean(), inplace=True)
         return train_features, train_targets, test_features
 
     def calculate_payment_and_forecast(self,
@@ -496,10 +513,9 @@ class MarketClass:
         buyer_y.rename(columns={"value": "target"}, inplace=True)
         # Features suggested by buyer to predict this resource:
         suggested_features = buyer_cls.features_list
-        # All features provided by buyer user to the market
-        # (i.e., for all resources)
+        # Buyer Features specified by agent to use in his model:
         user_features_list = self.users_data[user_id].user_features_list
-
+        # Gain function:
         gain_func = buyer_cls.gain_func
         logger.debug(f"\nResource ID: {resource_id}"
                      f"\nUser ID:{user_id}"
@@ -508,6 +524,12 @@ class MarketClass:
                      f"\nGain Function:{gain_func}"
                      f"\nlen(y):{len(buyer_y)}"
                      )
+
+        # -- Failure scenario return:
+        fail_return = {"market_fee": 0, "payment": 0, "gain_func": gain_func,
+                       "gain": 0, "final_bid": bid_price, "user_id": user_id,
+                       "resource_id": resource_id, "forecasts": None}
+
         # -- Feature Engineering (own data) & select market features
         # Pre-process buyer data
         buyer_y = self.__preprocess_buyer_data(
@@ -522,14 +544,12 @@ class MarketClass:
             market_features=market_x_full,
             expected_dates=market_x_full.index,
         )
+        # Check if buyer feature set is empty. If so, cancels process:
         if buyer_x.empty:
             logger.warning(f"Buyer {user_id} resource {resource_id} "
                            f"features dataset is empty. Aborting forecast.")
-            return {
-                "resource_id": resource_id,
-                "user_id": user_id,
-                "forecasts": None
-            }
+
+            return fail_return
 
         # Select market features (all agents but buyer_id)
         logger.debug("Selecting market features ...")
@@ -575,6 +595,14 @@ class MarketClass:
             buyer_x=buyer_x,
             buyer_y=buyer_y,
         )
+
+        # Check if there are sufficient input samples to perform a forecast
+        # for the test set:
+        if test_features.isnull().any().any():
+            logger.error(f"Error! User {user_id} resource {resource_id} "
+                         f"has NaNs on the forecast "
+                         f"inputs (test set). Aborting forecast.")
+            return fail_return
 
         # Get features names and indexes
         sellers_features_name = list(market_x.columns)

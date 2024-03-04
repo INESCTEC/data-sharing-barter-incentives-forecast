@@ -60,8 +60,8 @@ def create_user_resource_db(nr_users, nr_resources_per_user):
     for user_id in range(nr_users):
         for _ in range(nr_resources_per_user):
             resource_db.append(create_user_resource(use_custom_data=True,
-                                                    user=user_id,
-                                                    id=resource_id))
+                                                    user=str(user_id),
+                                                    id=str(resource_id)))
             resource_id += 1
     return resource_db
 

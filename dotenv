@@ -3,6 +3,7 @@ RUN_REAL_MARKET=false
 # Market configs
 MARKET_EMAIL=market_email
 MARKET_PASSWORD=market_password
+MARKET_FORECAST_HORIZON=24
 
 # Database configs:
 POSTGRES_HOST=db_host

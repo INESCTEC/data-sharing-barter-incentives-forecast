@@ -40,7 +40,6 @@ class MarketController:
         self.tangle = IOTAClientController(node_url=[settings.IOTA_NODE_URL])
         # Market API Controller:
         self.api = Controller()
-        # todo: adicionar re-log caso token expire
         self.api.login(email=settings.MARKET_EMAIL,
                        password=settings.MARKET_PASSWORD)
 
@@ -181,6 +180,9 @@ class MarketController:
         logger.info(json.dumps(status, indent=2))
         logger.info("")
 
+    def return_rejected_bids(self):
+        pass
+
     def approve_buyers_bids(self):
         """
         Approve buyers bids for current session
@@ -277,7 +279,7 @@ class MarketController:
         # ###################################################
         # Check if there are sufficient bids to run market
         # ####################################################
-        if len(bids_per_resource) <= 1:
+        if len(bids_per_resource) == 0:
             close_no_bids_session(
                 api_controller=self.api,
                 curr_session_data=session_data,
@@ -296,7 +298,7 @@ class MarketController:
         # ################################
         # Query agents measurements:
         # ################################
-        measurements = get_measurements_data_mock(
+        measurements = get_measurements_data(
             users_resources=users_resources,
             market_launch_time=launch_time
         )
@@ -305,7 +307,7 @@ class MarketController:
         # Create & Run Market Session
         # ################################
         mc = MarketClass(n_jobs=settings.N_JOBS,
-                         auto_feature_selection=True,
+                         auto_feature_selection=False,
                          auto_feature_engineering=True,
                          enable_db_uploads=True)
         mc.init_session(
@@ -549,7 +551,7 @@ class MarketController:
                 })
                 total_transfer += balance_iota
             except UserWalletException:
-                logger.exception(f"Failed to get user {user_id} address.")
+                logger.error(f"Failed to get user {user_id} wallet address.")
                 continue
 
         if len(transfer_list) == 0:
@@ -666,10 +668,3 @@ class MarketController:
                 all_successful = False
 
         return all_successful
-
-    def create_market_report(self):
-        # todo: Fetch session bids
-        # todo: Fetch session balances
-        # todo: Fetch transfers
-        # todo: Fetch current balances
-        pass

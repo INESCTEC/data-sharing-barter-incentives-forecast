@@ -18,7 +18,7 @@ def test_payment_vs_revenue_no_fees_2u_2r(market_session_2u_2r):
     # therefore, sum(payments) == sum(revenues)
     assert round(total_payments, 6) == round(total_revenues, 6)
     assert mc.mkt_sess.total_market_fee == 0.0
-    assert mc.mkt_sess.market_fee_per_resource == {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0}
+    assert mc.mkt_sess.market_fee_per_resource == {"0": 0.0, "1": 0.0, "2": 0.0, "3": 0.0}
     assert sum(mc.mkt_sess.market_fee_per_resource.values()) == mc.mkt_sess.total_market_fee  # noqa
 
 
@@ -40,10 +40,12 @@ def test_payment_vs_revenue_no_fees_3u_4r(market_session_3u_4r):
     # therefore, sum(payments) == sum(revenues)
     assert round(total_payments, 6) == round(total_revenues, 6)
     assert mc.mkt_sess.total_market_fee == 0.0
-    assert mc.mkt_sess.market_fee_per_resource == {0: 0.0, 1: 0.0, 2: 0.0,
-                                                   3: 0.0, 4: 0.0, 5: 0.0,
-                                                   6: 0.0, 7: 0.0, 8: 0.0,
-                                                   9: 0.0, 10: 0.0, 11: 0.0}
+    assert mc.mkt_sess.market_fee_per_resource == {"0": 0.0, "1": 0.0,
+                                                   "2": 0.0, "3": 0.0,
+                                                   "4": 0.0, "5": 0.0,
+                                                   "6": 0.0, "7": 0.0,
+                                                   "8": 0.0, "9": 0.0,
+                                                   "10": 0.0, "11": 0.0}
     assert sum(mc.mkt_sess.market_fee_per_resource.values()) == mc.mkt_sess.total_market_fee
 
 
