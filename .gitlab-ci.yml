@@ -25,6 +25,9 @@ lint:
 test:
   stage: test
   image: python:${PYTHON_VERSION}
+  before_script:
+    # Configure git to use the token for your GitLab instance
+    - git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
