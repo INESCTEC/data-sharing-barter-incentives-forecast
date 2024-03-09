@@ -2,9 +2,17 @@ name: CI
 
 on: [push]
 
+env:
+  POETRY_NO_INTERACTION: 1
+  POETRY_VIRTUALENVS_CREATE: 'false'
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.12"]
 
     steps:
       - name: Checkout code
@@ -19,22 +27,22 @@ jobs:
         run: |
           git config --global url."https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
 
-
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install flake8
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install --with test
 
       - name: Lint code
         run: |
-          flake8
+          flake8 .
 
   test:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.12"]
 
     steps:
     - name: Checkout code
@@ -51,8 +59,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-cov
+        python -m pip install --upgrade pip
+        pip install poetry
+        poetry install --with test
 
     - name: Run tests with coverage
       run: |

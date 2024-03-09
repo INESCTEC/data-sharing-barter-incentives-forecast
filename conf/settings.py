@@ -50,7 +50,7 @@ MARKET_FORECAST_HORIZON = int(os.environ.get("MARKET_FORECAST_HORIZON", 24))
 # Database configs:
 DATABASES = {
     'default': {
-        'NAME': os.environ.get("POSTGRES_NAME", default=''),
+        'NAME': os.environ.get("POSTGRES_DB", default=''),
         'USER': os.environ.get("POSTGRES_USER", default=''),
         'PASSWORD': os.environ.get("POSTGRES_PASSWORD", default=''),
         'HOST': os.environ.get("POSTGRES_HOST", default=''),
