@@ -4,6 +4,11 @@ stages:
 
 variables:
   PYTHON_VERSION: "3.12"
+  POETRY_NO_INTERACTION: 1
+  POETRY_VIRTUALENVS_CREATE: 'false'
+  POETRY_CACHE_DIR: '/var/cache/pypoetry'
+  POETRY_HOME: '/usr/local'
+
 
 lint:
   stage: lint
@@ -14,8 +19,7 @@ lint:
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
-    - poetry install
-    - pip install flake8
+    - poetry install --with test
     - flake8
 
 test:
@@ -24,7 +28,7 @@ test:
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
-    - poetry install
+    - poetry install --with test
     - cd src/market
     - pytest --cov
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
