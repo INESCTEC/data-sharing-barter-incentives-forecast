@@ -14,7 +14,8 @@ lint:
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
-    - poetry install --with test
+    - poetry install
+    - pip install flake8
     - flake8
 
 test:
@@ -23,7 +24,7 @@ test:
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
-    - poetry install --with test
+    - poetry install
     - cd src/market
     - pytest --cov
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
