@@ -79,15 +79,26 @@ To launch the docker containers stack:
 If you prefer using your local python interpreter (instead of docker), you'll need to manually perform the installation steps.
 Also, only 'simulation' functionalities (i.e., without integration with the data market REST / DB) will be available.
 
-1. Install the python dependencies
+1. Install poetry (if not already installed)
+
    ```shell
-        $ pip install -r requirements.txt
+      $ pip install poetry   
+    ```
+   
+2. Install the python dependencies
+   ```shell
+      $ cd /api
+      $ poetry install
+      $ poetry shell
    ```
 
-2. Run the 'run_menu.py' script to open the interactive market menu
+3. Run the 'run_menu.py' script to open the interactive market menu
     ```shell
-        $ python run_menu.py
+        $ poetry run python run_menu.py
     ```
+   
+> **_NOTE:_** If you're already working in a virtual environment (e.g., conda or pyenv), you can skip the `poetry shell` command. 
+
 
 ### Running the interactive menu:
 
