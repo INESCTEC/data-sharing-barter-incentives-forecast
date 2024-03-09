@@ -1,17 +1,37 @@
 stages:
-  - test-market
+  - lint
+  - test
 
-test-market:
-  image:
-    name: python:3.12
-    entrypoint: ["/usr/bin/env"]
-  stage: test-market
+variables:
+  PYTHON_VERSION: "3.12"
+  POETRY_NO_INTERACTION: 1
+  POETRY_VIRTUALENVS_CREATE: 'false'
+  POETRY_CACHE_DIR: '/var/cache/pypoetry'
+  POETRY_HOME: '/usr/local'
+
+
+lint:
+  stage: lint
+  image: python:${PYTHON_VERSION}
   before_script:
     # Configure git to use the token for your GitLab instance
-    - 'git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"'
+    - git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
   script:
-    - pip install -r requirements.txt
+    - python -m pip install --upgrade pip
+    - pip install poetry
+    - poetry install --with test
     - flake8
+
+test:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  before_script:
+    # Configure git to use the token for your GitLab instance
+    - git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
+  script:
+    - python -m pip install --upgrade pip
+    - pip install poetry
+    - poetry install --with test
     - cd src/market
     - pytest --cov
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
