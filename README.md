@@ -87,7 +87,6 @@ Also, only 'simulation' functionalities (i.e., without integration with the data
    
 2. Install the python dependencies
    ```shell
-      $ cd /api
       $ poetry install
       $ poetry shell
    ```
