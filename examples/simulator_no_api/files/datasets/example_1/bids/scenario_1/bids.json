@@ -1,0 +1,5 @@
+[
+  {"user":"0","resource":"0","bid_price":5500000,"gain_func":"mse","max_payment":550000000000,"features_list":[]},
+  {"user":"1","resource":"1","bid_price":5500000,"gain_func":"mse","max_payment":550000000000,"features_list":[]},
+  {"user":"2","resource":"2","bid_price":5500000,"gain_func":"mse","max_payment":550000000000,"features_list":[]}
+]
