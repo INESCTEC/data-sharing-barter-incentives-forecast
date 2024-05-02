@@ -27,14 +27,25 @@ The following directory structure should be considered:
 * [Pip ^21.x](https://pypi.org/project/pip/)
 
 ## Install project dependencies
+
+1. Install (poetry)[https://python-poetry.org/] (if not already installed)
+
+   ```shell
+   pip install poetry   
+   ```
+   
+2. Install the python dependencies
+   ```shell
+   poetry install
+   ```
+
+3. Activate Poetry virtual environment:
  
-Run the following command, in the project `ROOT` directory:
+   > **_NOTE:_** If you're already using a virtual environment (e.g., conda or pyenv), you can skip the `poetry shell` command. 
 
-``` bash
-pip install -r requirements.txt
-```
-
-__WARNING__: If you are using a virtual environment, make sure it is activated before running the command above.
+   ```shell
+   poetry shell
+   ```
 
 ## Basic principles / nomenclature
 
@@ -123,8 +134,8 @@ __WARNING__: Disabling `auto_feature_engineering` might affect the number of fea
 
 To run the simulation, simply run the following command:
 
-``` bash
-python session_sim_normal.py
+``` shell
+poetry run python session_sim_normal.py
 ```
 
 By default simulation will run for 10 sessions, on a hourly basis (`session_freq = 1`), with an example dataset composed by 3 agents, 
