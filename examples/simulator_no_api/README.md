@@ -28,7 +28,7 @@ The following directory structure should be considered:
 
 ## Install project dependencies
 
-1. Install (poetry)[https://python-poetry.org/] (if not already installed)
+1. Install Python [poetry](https://python-poetry.org/) package (if not already installed)
 
    ```shell
    pip install poetry   
