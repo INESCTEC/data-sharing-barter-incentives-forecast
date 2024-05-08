@@ -13,6 +13,7 @@ class SellerClass(ValidatorClass):
     resource_type: str = None           # Type (measurements or features)
     y: pd.DataFrame = None              # Resource measurements time-series
     has_to_receive: np.float64 = np.float64(0.0)  # Resource revenue
+    shapley_value: np.float64 = np.float64(0.0)  # shapley_value
 
     def validate_attributes(self):
         if self.user_id is None:
@@ -30,6 +31,7 @@ class SellerClass(ValidatorClass):
             "user_id": self.user_id,
             "resource_id": self.resource_id,
             "has_to_receive": self.has_to_receive,
+            "shapley_value": self.shapley_value
         }
 
     def set_data(self, data):
@@ -44,3 +46,6 @@ class SellerClass(ValidatorClass):
         :return:
         """
         self.has_to_receive += price
+
+    def increment_shapley_value(self, value_dict):
+        self.shapley_value += value_dict
