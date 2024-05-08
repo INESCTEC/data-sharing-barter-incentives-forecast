@@ -88,7 +88,7 @@ def calc_sellers_revenue(
     payment = buyer_resource_payment - buyer_market_fee
 
     # -- Calculate percentage revenue (% of buyer payment)
-    pct_revenue_split = shapley_robust(
+    pct_revenue_split, shapley_value = shapley_robust(
         buyer_features_idx=buyer_features_idx,
         Y=targets,
         X=noisy_features,
@@ -124,7 +124,7 @@ def calc_sellers_revenue(
                           and (x.split('__')[1] not in ignored_features)]
     # -- assign revenue to sellers:
     revenue_split = dict([
-        (seller_id, {"pct_revenue": 0, "abs_revenue": 0})
+        (seller_id, {"pct_revenue": 0, "abs_revenue": 0, "shapley_value": 0})
         for seller_id in sellers_id_list
     ])
     for j, idx in enumerate(valid_features_idx):
@@ -134,6 +134,7 @@ def calc_sellers_revenue(
                      f"{pct_revenue_split[j] * buyer_resource_payment}")
         revenue_split[seller_resource_id]["pct_revenue"] += pct_revenue_split[j]
         revenue_split[seller_resource_id]["abs_revenue"] += pct_revenue_split[j] * payment  # noqa
+        revenue_split[seller_resource_id]["shapley_value"] += shapley_value[j]
     return revenue_split
 
 
@@ -258,7 +259,7 @@ def shapley_robust(buyer_features_idx, Y, X, K, lambd, n_hours, gain_func):
             # Create new phi (after penalizations)
             phi = phi_ / phi_.sum()
 
-        return phi
+        return phi, phi_
 
 
 # #############################################################################
