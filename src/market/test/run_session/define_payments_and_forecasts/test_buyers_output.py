@@ -11,6 +11,7 @@ def test_buyers_output_attrs(market_session_2u_1r):
     assert isinstance(buyer_output["features"], np.ndarray)
     assert buyer_output["features"].shape == buyer_output["noisy_train_features"].shape
     assert sorted(buyer_output_fields) == sorted(['buyer_features_name',
+                                                  'error',
                                                   'features',
                                                   'final_bid',
                                                   'forecasts',
