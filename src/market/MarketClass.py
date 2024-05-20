@@ -530,12 +530,28 @@ class MarketClass:
                        "gain": 0, "final_bid": bid_price, "user_id": user_id,
                        "resource_id": resource_id, "forecasts": None}
 
+        # -- Check if buyer dataset (measurements) is empty:
+        if buyer_y.empty:
+            logger.warning(f"Buyer {user_id} resource {resource_id} "
+                           f"forecast target dataset is empty "
+                           f"(for the available market dataset dates). "
+                           f"Aborting forecast. Payment will be 0 and "
+                           f"forecasts wont be created  for this user.")
+            return fail_return
+
         # -- Feature Engineering (own data) & select market features
         # Pre-process buyer data
-        buyer_y = self.__preprocess_buyer_data(
-            data=buyer_y,
-            expected_dates=market_x_full.index,
-        )
+        try:
+            buyer_y = self.__preprocess_buyer_data(
+                data=buyer_y,
+                expected_dates=market_x_full.index,
+            )
+        except Exception as e:
+            logger.exception(f"Error! Buyer {user_id} resource {resource_id} "
+                             f"preprocessing failed. Aborting forecast. "
+                             f"Details: {e}")
+            return fail_return
+
         # Buyer features:
         buyer_x = self.__create_buyer_features(
             buyer_y=buyer_y,
