@@ -528,7 +528,8 @@ class MarketClass:
         # -- Failure scenario return:
         fail_return = {"market_fee": 0, "payment": 0, "gain_func": gain_func,
                        "gain": 0, "final_bid": bid_price, "user_id": user_id,
-                       "resource_id": resource_id, "forecasts": None}
+                       "resource_id": resource_id, "forecasts": None,
+                       "error": True}
 
         # -- Check if buyer dataset (measurements) is empty:
         if buyer_y.empty:
@@ -710,7 +711,8 @@ class MarketClass:
             "sellers_features_name": sellers_features_name,
             "buyer_features_idx": buyer_features_idx,
             "sellers_features_idx": sellers_features_idx,
-            "forecasts": forecasts
+            "forecasts": forecasts,
+            "error": False
         }
 
     def define_sellers_revenue(self):
@@ -872,36 +874,44 @@ class MarketClass:
         price_weights = self.mkt_sess.prev_weights_p
         # -- Iterate through each buyer inputs & calc price weights
         for i, input_kwargs in enumerate(self.buyer_outputs):
-            logger.debug(f"Iteration #{i + 1}")
-            probs, price_weights = market_price_update_parallel(
-                w=price_weights,
-                Bmin=self.mkt_sess.b_min,
-                Bmax=self.mkt_sess.b_max,
-                epsilon=self.mkt_sess.epsilon,
-                delta=self.mkt_sess.delta,
-                n_hours=self.N_HOURS,
-                possible_p=self.mkt_sess.possible_p,
-                features=input_kwargs["features"],
-                targets=input_kwargs["targets"],
-                gain_func=input_kwargs["gain_func"],
-                bid_price=input_kwargs["initial_bid"],
-                buyer_features_idx=input_kwargs["buyer_features_idx"],
-                sellers_features_idx=input_kwargs["sellers_features_idx"],
-                n_jobs=self.n_jobs
-            )
-            logger.debug(f"Current price weights: {price_weights}")
-            logger.debug(f"Current probs: {probs}")
+            if not input_kwargs["error"]:
+                logger.debug(f"Iteration #{i + 1}")
+                probs, price_weights = market_price_update_parallel(
+                    w=price_weights,
+                    Bmin=self.mkt_sess.b_min,
+                    Bmax=self.mkt_sess.b_max,
+                    epsilon=self.mkt_sess.epsilon,
+                    delta=self.mkt_sess.delta,
+                    n_hours=self.N_HOURS,
+                    possible_p=self.mkt_sess.possible_p,
+                    features=input_kwargs["features"],
+                    targets=input_kwargs["targets"],
+                    gain_func=input_kwargs["gain_func"],
+                    bid_price=input_kwargs["initial_bid"],
+                    buyer_features_idx=input_kwargs["buyer_features_idx"],
+                    sellers_features_idx=input_kwargs["sellers_features_idx"],
+                    n_jobs=self.n_jobs
+                )
+                logger.debug(f"Current price weights: {price_weights}")
+                logger.debug(f"Current probs: {probs}")
 
-        # -- Define & store market price & weights for next session:
-        # Calculate market price for next session:
-        next_market_price = sum(probs * self.mkt_sess.possible_p)
-        next_market_price = (next_market_price // self.mkt_sess.epsilon + 1)
-        next_market_price *= self.mkt_sess.epsilon
-        logger.debug(f"Next market price: {next_market_price}")
-        # Save next market price & weights:
-        self.mkt_sess.set_next_market_price(next_market_price)
-        self.mkt_sess.set_next_price_weights(price_weights)
-        logger.info("Updating market prices for next session ... Ok!")
+        # -- Check if there are the necessary conditions to update prices
+        if len(probs) == 0:
+            logger.warning("No valid buyer inputs to update market prices. "
+                           "Keeping current market price.")
+            self.mkt_sess.set_next_market_price(self.mkt_sess.market_price)
+            self.mkt_sess.set_next_price_weights(self.mkt_sess.prev_weights_p)
+        else:
+            # -- Define & store market price & weights for next session:
+            # Calculate market price for next session:
+            next_market_price = sum(probs * self.mkt_sess.possible_p)
+            next_market_price = (next_market_price // self.mkt_sess.epsilon + 1)
+            next_market_price *= self.mkt_sess.epsilon
+            logger.debug(f"Next market price: {next_market_price}")
+            # Save next market price & weights:
+            self.mkt_sess.set_next_market_price(next_market_price)
+            self.mkt_sess.set_next_price_weights(price_weights)
+            logger.info("Updating market prices for next session ... Ok!")
 
     def process_payments(self, api_controller=None):
         if api_controller is None:
