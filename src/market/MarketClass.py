@@ -361,7 +361,11 @@ class MarketClass:
                     # Filter data for specific seller resource:
                     _dataset = market_df[[seller_id]]
                     # Get last available datetime:
-                    _last_date = _dataset.dropna().index[-1]
+                    try:
+                        _last_date = _dataset.dropna().index[-1]
+                    except IndexError:
+                        logger.warning(f"Empty dataset for seller resource {seller_id}, after dropna")
+                        continue
                     # Get lag reference (difference (in hours) between the
                     # last date in forecast horizon and last available date
                     lag_ref = -int((self.forecast_range[-1] - _last_date).total_seconds() / 3600)  # noqa
@@ -454,7 +458,11 @@ class MarketClass:
 
             # Find backup lag reference (difference between last forecast date
             # and last date available in the dataset)
-            _last_date = _dataset.dropna().index[-1]
+            try:
+                _last_date = _dataset.dropna().index[-1]
+            except IndexError:
+                logger.warning(f"Empty dataset for buyer resource {target_resource_id}, after dropna")
+                return pd.DataFrame()
             lag_ref = -int((self.forecast_range[-1] - _last_date).total_seconds() / 3600)  # noqa
             hourly_lags.extend([lag_ref])
             # Remove duplicate lags (e.g., added by backup lag) but keep order:
@@ -534,8 +542,7 @@ class MarketClass:
         # -- Check if buyer dataset (measurements) is empty:
         if buyer_y.empty:
             logger.warning(f"Buyer {user_id} resource {resource_id} "
-                           f"forecast target dataset is empty "
-                           f"(for the available market dataset dates). "
+                           f"forecast target dataset is empty. "
                            f"Aborting forecast. Payment will be 0 and "
                            f"forecasts wont be created  for this user.")
             return fail_return
@@ -551,6 +558,15 @@ class MarketClass:
             logger.exception(f"Error! Buyer {user_id} resource {resource_id} "
                              f"preprocessing failed. Aborting forecast. "
                              f"Details: {e}")
+            return fail_return
+
+        # -- Check if buyer dataset (measurements) is empty:
+        if buyer_y.dropna().empty:
+            logger.warning(f"Buyer {user_id} resource {resource_id} "
+                           f"forecast target dataset is empty "
+                           f"(for the available market dataset dates). "
+                           f"Aborting forecast. Payment will be 0 and "
+                           f"forecasts wont be created  for this user.")
             return fail_return
 
         # Buyer features:
