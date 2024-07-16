@@ -124,10 +124,13 @@ class MarketTasks(object):
             logger.info(f"Waiting {self.dlt_confirm_wait_time}s for DLT "
                         f"to confirm txn ...")
             sleep(self.dlt_confirm_wait_time)
-            retry(market.validate_tokens_transfer,
-                  max_attempts=self.transfer_out_validate_retry_attempts,
-                  delay=self.transfer_out_validate_retry_delay,
-                  retry_if_result_false=True)
+            try:
+                retry(market.validate_tokens_transfer,
+                      max_attempts=self.transfer_out_validate_retry_attempts,
+                      delay=self.transfer_out_validate_retry_delay,
+                      retry_if_result_false=True)
+            except Exception:
+                logger.error("Failed to validate transfer out operations.")
             # Try to open new market session
             # (status change from 'staged' to 'open')
             # Will fail until validate tokens transfer is successful as
