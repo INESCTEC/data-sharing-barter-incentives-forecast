@@ -38,9 +38,9 @@ def get_session_data(api_controller):
 # #############################################################################
 
 
-def close_no_bids_session(api_controller,
-                          curr_session_data,
-                          curr_price_weights):
+def close_failed_session(api_controller,
+                         curr_session_data,
+                         curr_price_weights):
     import datetime as dt
     # -- Current session info:
     curr_session_id = curr_session_data["id"]

@@ -15,7 +15,7 @@ from .wallet.WalletController import WalletController
 from .market import MarketClass
 from .market.helpers.api_helpers import (
     get_session_data,
-    close_no_bids_session
+    close_failed_session
 )
 from .market.helpers.db_helpers import (
     get_measurements_data,
@@ -280,7 +280,7 @@ class MarketController:
         # Check if there are sufficient bids to run market
         # ####################################################
         if len(bids_per_resource) == 0:
-            close_no_bids_session(
+            close_failed_session(
                 api_controller=self.api,
                 curr_session_data=session_data,
                 curr_price_weights=price_weights
@@ -292,6 +292,7 @@ class MarketController:
         # ###################################
         # Convert units from IOTA to MIOTA:
         # ####################################
+        session_data_raw_ = session_data.copy()
         session_data = convert_session_data_to_mi(data=session_data)
         bids_per_resource = convert_buyers_bids_to_mi(bids=bids_per_resource)
 
@@ -306,40 +307,49 @@ class MarketController:
         # ################################
         # Create & Run Market Session
         # ################################
-        mc = MarketClass(n_jobs=settings.N_JOBS,
-                         auto_feature_selection=False,
-                         auto_feature_engineering=True,
-                         enable_db_uploads=True)
-        mc.init_session(
-            session_data=session_data,
-            price_weights=price_weights,
-            launch_time=launch_time
-        )
-        mc.show_session_details()
-        mc.start_session(api_controller=self.api)
-        # -- Load resources bids:
-        mc.load_users_resources(users_resources=users_resources)
-        mc.load_resources_bids(bids=bids_per_resource)
-        # -- Load resources measurements data:
-        mc.load_resources_measurements(measurements=measurements)
-        # -- Run market session:
-        mc.define_payments_and_forecasts()
-        mc.define_sellers_revenue()
-        mc.save_session_results()
-        mc.validate_session_results(raise_exception=True)
-        # -- Display session results
-        mc.show_session_results()
-        # -- Process payments:
-        mc.process_payments(api_controller=self.api)
-        # -- Update market price for next session:
-        mc.update_market_price()
-        # -- End session:
-        mc.end_session(api_controller=self.api)
-        # -- Open Next session:
-        mc.open_next_session(api_controller=self.api)
-        # -- Display session results
-        mc.show_session_results()
-        return True
+        try:
+            mc = MarketClass(n_jobs=settings.N_JOBS,
+                             auto_feature_selection=False,
+                             auto_feature_engineering=True,
+                             enable_db_uploads=True)
+            mc.init_session(
+                session_data=session_data,
+                price_weights=price_weights,
+                launch_time=launch_time
+            )
+            mc.show_session_details()
+            mc.start_session(api_controller=self.api)
+            # -- Load resources bids:
+            mc.load_users_resources(users_resources=users_resources)
+            mc.load_resources_bids(bids=bids_per_resource)
+            # -- Load resources measurements data:
+            mc.load_resources_measurements(measurements=measurements)
+            # -- Run market session:
+            mc.define_payments_and_forecasts()
+            mc.define_sellers_revenue()
+            mc.save_session_results()
+            mc.validate_session_results(raise_exception=True)
+            # -- Display session results
+            mc.show_session_results()
+            # -- Process payments:
+            mc.process_payments(api_controller=self.api)
+            # -- Update market price for next session:
+            mc.update_market_price()
+            # -- End session:
+            mc.end_session(api_controller=self.api)
+            # -- Open Next session:
+            mc.open_next_session(api_controller=self.api)
+            # -- Display session results
+            mc.show_session_results()
+            return True
+        except BaseException:
+            logger.error("Failed to run session. Closed and staged new one.")
+            close_failed_session(
+                api_controller=self.api,
+                curr_session_data=session_data_raw_,
+                curr_price_weights=price_weights
+            )
+            return False
 
     def run_fake_market_session(self):
         """
@@ -371,7 +381,7 @@ class MarketController:
         # Check if there are sufficient bids to run market
         # ####################################################
         if len(bids_per_resource) == 0:
-            close_no_bids_session(
+            close_failed_session(
                 api_controller=self.api,
                 curr_session_data=session_data,
                 curr_price_weights=price_weights

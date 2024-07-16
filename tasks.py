@@ -145,7 +145,7 @@ class MarketTasks(object):
             # NoMarketSession exception is raised when there is no
             # open session to run
             logger.error(f"{msg_} Failed! {time() - t0:.2f}s")
-        except Exception:
+        except BaseException:
             logger.exception(f"{msg_} Failed! {time() - t0:.2f}s")
 
     @staticmethod
