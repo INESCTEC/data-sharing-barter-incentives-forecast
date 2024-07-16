@@ -109,16 +109,11 @@ class MarketTasks(object):
 
             # Run market session:
             if settings.RUN_REAL_MARKET:
-                result = market.run_market_session()
+                market.run_market_session()
             else:
-                result = market.run_fake_market_session()
+                market.run_fake_market_session()
 
-            if not result:
-                # Means that it was not possible to execute the session
-                # (e.g., due to no bids by agents)
-                # In this case, a staged session will be opened
-                market.open_market_session()
-                return
+            logger.error("Failed to run market session.")
 
             # Transfer balances:
             market.transfer_tokens_out()
