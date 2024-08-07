@@ -37,10 +37,12 @@ def wallet_config() -> WalletConfig:
 
 
 def smart_contract_config() -> SmartContractConfig:
-    return SmartContractConfig(
+    cfg = SmartContractConfig(
         contract_address=settings.ERC20_CONTRACT_ADDRESS,
         abi=TokenABI.ETK
     )
+    cfg.required_confirmations = 3
+    return cfg
 
 
 class WalletController:
@@ -60,8 +62,6 @@ class WalletController:
                     raise ValueError("WEB3_PROVIDER_URL environment variable not set")
                 w3 = ethereum_provider(url=provider_url)
                 eth_private_key = os.getenv('ETH_PRIVATE_KEY', None)
-                print("YOUR PRIVATE KEY IS:", eth_private_key)
-                print(config)
                 self.controller = EthereumSmartContract(config=config,
                                                         private_key=eth_private_key,
                                                         web3_instance=w3)
@@ -167,8 +167,6 @@ class WalletController:
                         "transaction_id": transaction_receipt.receipt
                     })
                     logger.debug(transaction_receipt)
-                    logger.debug("sleeping for 15seconds.")
-                    sleep(30)
                 except Exception as ex:
                     logger.error(ex)
                     logger.exception(f"An error occurred processing transaction {tid}")

@@ -652,6 +652,10 @@ class MarketClass:
         run_cycle = True  # Repeat while buyer_payment > max_payment
         logger.debug(f"Calculating payment for resource ID {resource_id} ...")
         t0 = time()
+        noisy_train_features = None
+        gain = None
+        payment = None
+        market_fee = None
         while run_cycle:
             # Calculate buyer payment:
             noisy_train_features, gain, payment = calc_buyer_payment(
@@ -968,7 +972,7 @@ class MarketClass:
                 transaction_type="revenue"
             )
 
-    def open_next_session(self, api_controller=None, wallet_controller=None):
+    def open_next_session(self, api_controller=None):
         if api_controller is None:
             raise AttributeError("Error! Must provide an api controller "
                                  "to process payments.")

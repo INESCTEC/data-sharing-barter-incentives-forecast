@@ -219,7 +219,8 @@ class MarketController:
                                 f"{b['transaction_id']} ... Ok!")
                     logger.debug(rsp)
 
-            except Exception:
+            except Exception as ex:
+                logger.error(ex)
                 logger.exception(f"Validating bid {b['id']} - "
                                  f"{b['transaction_id']} ... Failed!")
 
@@ -293,7 +294,7 @@ class MarketController:
             mc = MarketClass(n_jobs=settings.N_JOBS,
                              auto_feature_selection=False,
                              auto_feature_engineering=True,
-                             enable_db_uploads=True)
+                             enable_db_uploads=False)
             mc.init_session(
                 session_data=session_data,
                 price_weights=price_weights,
@@ -321,12 +322,12 @@ class MarketController:
             # -- End session:
             mc.end_session(api_controller=self.api)
             # -- Open Next session:
-            mc.open_next_session(api_controller=self.api,
-                                 wallet_controller=self.wallet)
+            mc.open_next_session(api_controller=self.api)
             # -- Display session results
             mc.show_session_results()
             return True
-        except BaseException:
+        except BaseException as ex:
+            logger.error(ex)
             logger.exception("Failed to run session. Closed and staged new one.")
             close_failed_session(
                 api_controller=self.api,
@@ -571,7 +572,8 @@ class MarketController:
                 transfer_list=transfer_list
             )
             logger.success("Performing multi-output txn ... Ok!")
-        except Exception:
+        except Exception as ex:
+            logger.error(ex)
             logger.exception("Unexpected transfer failure!")
             logger.error("Performing multi-output txn ... Failed!")
             return False
