@@ -17,9 +17,13 @@ RESTAPI_HOST=rest_api_host
 RESTAPI_PORT=rest_api_port
 N_REQUEST_RETRIES=n_request_retries
 
-# IOTA configs:
+# IOTA Payment Gateway configs:
 IOTA_NODE_URL=https://api.testnet.shimmer.network
 IOTA_FAUCET_URL=https://faucet.testnet.shimmer.network
+
+# Ethereum Payment Gateway configs (example for Enershare ETK below):
+ERC_CONTRACT_ADDRESS=0xb6bf9f117f76bbbf20a5ff942ba8bd48c3acee89
+WEB3_PROVIDER_URL=https://sepolia.infura.io/v3/cf175d91d8c7403fa135f523098f85f5
 
 # Wallet Configs:
 MINIMUM_WITHDRAW_AMOUNT = 1000000

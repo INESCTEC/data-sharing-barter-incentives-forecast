@@ -1,5 +1,6 @@
 import numpy as np
 import datetime as dt
+from typing import Union
 
 from dataclasses import dataclass
 from .helpers.class_helpers import ValidatorClass
@@ -7,10 +8,10 @@ from .helpers.class_helpers import ValidatorClass
 
 @dataclass()
 class SessionClass(ValidatorClass):
-    b_min: np.float64 = None                # Minimum market price
-    b_max: np.float64 = None                # Maximum market price
-    market_price: np.float64 = None         # Session Market Price
-    next_market_price: np.float64 = None    # Next session market price
+    b_min: Union[float, np.float64] = None                # Minimum market price
+    b_max: Union[float, np.float64] = None                # Maximum market price
+    market_price: Union[float, np.float64] = None         # Session Market Price
+    next_market_price: Union[float, np.float64] = None    # Next session market price
     status: str = None                      # Session status
     session_id: int = None                  # Session ID (unique)
     session_number: int = None              # Session ID (unique per date)
@@ -23,9 +24,9 @@ class SessionClass(ValidatorClass):
     sellers_results: dict = None            # Session results by seller
     buyers_forecasts: dict = None           # Session forecasts by buyer
     n_price_steps: int = None               # Number of price steps
-    delta: np.float64 = None                # Learning rate for price updates
+    delta: Union[float, np.float64] = None                # Learning rate for price updates
     possible_p: np.ndarray = None           # Array of possible price refs
-    epsilon: np.float64 = None              # Interval in possible_p array
+    epsilon: Union[float, np.float64] = None              # Interval in possible_p array
     status_list = ["open", "closed", "running", "finished"]
     total_market_fee = 0
     market_fee_per_resource = {}

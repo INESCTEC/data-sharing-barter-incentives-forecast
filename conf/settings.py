@@ -40,6 +40,10 @@ N_REQUEST_RETRIES = os.environ.get('N_REQUEST_RETRIES', 3)
 IOTA_FAUCET_URL = os.getenv('IOTA_FAUCET_URL', 'https://faucet.testnet.shimmer.network')
 IOTA_NODE_URL = os.getenv('IOTA_NODE_URL', 'https://api.testnet.shimmer.network')
 
+# ETH Configs:
+ERC20_CONTRACT_ADDRESS = os.getenv('ERC20_CONTRACT_ADDRESS', '')
+WEB3_PROVIDER_URL = os.getenv('WEB3_PROVIDER_URL', '')
+
 # Market Configs:
 RUN_REAL_MARKET = (os.getenv('RUN_REAL_MARKET', 'false').lower() == 'true')
 MARKET_EMAIL = os.environ.get('MARKET_EMAIL', "")
@@ -62,10 +66,10 @@ DATABASES = {
 # Market Session - First Session Configs:
 class FirstSessionConfigs:
     session_number = 1
-    b_min = 0.5 * 10 ** 6  # Minimum market price
-    b_max = 10 * 10 ** 6  # Maximum market price
+    b_min = 0.5         # Minimum market price
+    b_max = 10          # Maximum market price
     n_price_steps = 20  # Number of price steps
-    delta = 0.05  # Learning rate for price updates
+    delta = 0.05        # Learning rate for price updates
     possible_p = np.linspace(start=b_min,
                              stop=b_max,
                              num=n_price_steps)

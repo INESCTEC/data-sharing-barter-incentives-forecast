@@ -236,6 +236,14 @@ class Controller(RequestController):
         )
         return response['data']
 
+    def get_market_payment_processor(self):
+        response = self.__request_template(
+            endpoint_cls=Endpoint(payment_processor.GET, payment_processor.uri),
+            log_msg="Getting market payment processor details",
+            exception_cls=MarketSessionException
+        )
+        return response
+
     def list_last_session(self, status: str = None):
         params = {"latest_only": True}
         if status is not None:
@@ -356,12 +364,12 @@ class Controller(RequestController):
         )
         return response["data"]
 
-    def post_validate_bid(self, tangle_msg_id):
-        payload = {"tangle_msg_id": tangle_msg_id}
+    def post_validate_bid(self, transaction_id):
+        payload = {"transaction_id": transaction_id}
         response = self.__request_template(
             endpoint_cls=Endpoint(market_validate_bids.POST,
                                   market_validate_bids.uri),
-            log_msg=f"Validating Tangle Message ID {tangle_msg_id}",
+            log_msg=f"Validating Transaction ID {transaction_id}",
             data=payload,
             exception_cls=MarketSessionException
         )
@@ -369,7 +377,7 @@ class Controller(RequestController):
 
     def list_pending_transfer_out(self, user_id=None):
         params = {
-            "is_solid": False
+            "confirmed": False
         }
         if user_id:
             params["user"] = user_id
@@ -382,27 +390,27 @@ class Controller(RequestController):
         )
         return response["data"]
 
-    def post_transfer_out(self, user_id, amount, tangle_msg_id,
+    def post_transfer_out(self, user_id, amount, transaction_id,
                           user_wallet_address):
         payload = {
             "user": user_id,
             "amount": amount,
-            "tangle_msg_id": tangle_msg_id,
+            "transaction_id": transaction_id,
             "user_wallet_address": user_wallet_address,
         }
         response = self.__request_template(
             endpoint_cls=Endpoint(market_transfer_out.POST,
                                   market_transfer_out.uri),
-            log_msg=f"Registering wallet transfer out tokens action - Tangle message ID: {tangle_msg_id}",
+            log_msg=f"Registering wallet transfer out tokens action - Transaction ID: {transaction_id}",
             data=payload,
             exception_cls=WalletTransferOutException
         )
         return response["data"]
 
-    def put_confirm_transfer_out(self, withdraw_transfer_id, is_solid):
+    def put_confirm_transfer_out(self, withdraw_transfer_id, confirmed):
         payload = {
             "withdraw_transfer_id": withdraw_transfer_id,
-            "is_solid": is_solid,
+            "confirmed": confirmed,
         }
         response = self.__request_template(
             endpoint_cls=Endpoint(market_transfer_out.PUT,

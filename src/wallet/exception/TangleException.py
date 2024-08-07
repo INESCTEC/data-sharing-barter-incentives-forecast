@@ -1,5 +1,5 @@
 
-class IdNotFoundInTangle(Exception):
+class IdNotFoundInLedger(Exception):
     def __init__(self, message, errors):
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
@@ -8,7 +8,7 @@ class IdNotFoundInTangle(Exception):
         self.errors = errors
 
 
-class IdNotConfirmedInTangle(Exception):
+class IdNotConfirmedInLedger(Exception):
     def __init__(self, message, errors):
         # Call the base class constructor with the parameters it needs
         super().__init__(message)

@@ -97,7 +97,7 @@ class AgentsLoader:
             self.bids_per_resource[i]["has_forecasts"] = False
             self.bids_per_resource[i]["market_session"] = self.market_session
             self.bids_per_resource[i]["registered_at"] = dt_now
-            self.bids_per_resource[i]["tangle_msg_id"] = os.urandom(24)
+            self.bids_per_resource[i]["transaction_id"] = os.urandom(24)
 
     def load_measurements(self):
         self.measurements = {}

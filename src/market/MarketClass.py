@@ -39,7 +39,6 @@ from .preprocessing.feature_engineering.construct_inputs_funcs import construct_
 
 # -- Mock data imports:
 from src.market.helpers.model_helpers import create_forecast
-from src.market.helpers.units_helpers import convert_mi_to_i
 
 
 class MarketClass:
@@ -929,60 +928,58 @@ class MarketClass:
             self.mkt_sess.set_next_price_weights(price_weights)
             logger.info("Updating market prices for next session ... Ok!")
 
-    def process_payments(self, api_controller=None):
+    def process_payments(self,
+                         api_controller=None,
+                         wallet_controller=None):
         if api_controller is None:
             raise AttributeError("Error! Must provide an api controller "
                                  "to process payments.")
-
+        if wallet_controller is None:
+            raise AttributeError("Error! Must provide an wallet_controller "
+                                 "to process payments.")
         # -- Market Session ID:
         market_session_id = self.mkt_sess.session_id
         # -- Process market fee payment (to market superuser):
-        fees_iota = convert_mi_to_i(self.mkt_sess.total_market_fee)
-        # -- Todo: Adicionar Controlo de exceptions:
+        market_fees = self.mkt_sess.total_market_fee
         api_controller.post_session_market_fee(
             session_id=market_session_id,
-            fee_amount=fees_iota,
+            fee_amount=market_fees,
         )
         # -- Process payments for agents (updated market account)
         for resource_id, buyer_info in self.mkt_sess.buyers_results.items():
-            payment_iota = convert_mi_to_i(buyer_info["has_to_pay"])
+            payment_amount = buyer_info["has_to_pay"]
             user_id = buyer_info["user_id"]
             api_controller.post_session_balance(
                 user_id=user_id,
                 resource_id=resource_id,
                 session_id=market_session_id,
-                amount=-payment_iota,
+                amount=-payment_amount,
                 transaction_type="payment"
             )
         # -- Process revenue for agents (updated market account)
         for resource_id, seller_info in self.mkt_sess.sellers_results.items():
-            revenue_iota = convert_mi_to_i(seller_info["has_to_receive"])
+            revenue_amount = seller_info["has_to_receive"]
             user_id = seller_info["user_id"]
             api_controller.post_session_balance(
                 user_id=user_id,
                 resource_id=resource_id,
                 session_id=market_session_id,
-                amount=revenue_iota,
+                amount=revenue_amount,
                 transaction_type="revenue"
             )
 
-    def open_next_session(self, api_controller=None):
+    def open_next_session(self, api_controller=None, wallet_controller=None):
         if api_controller is None:
             raise AttributeError("Error! Must provide an api controller "
                                  "to process payments.")
-
-        # Conversion from MIOTA to IOTA:
-        market_price_ = convert_mi_to_i(self.mkt_sess.next_market_price)
-        b_min_ = convert_mi_to_i(self.mkt_sess.b_min)
-        b_max_ = convert_mi_to_i(self.mkt_sess.b_max)
-
-        # -- Todo: Adicionar Controlo de exceptions:
-        # -- Todo: verificar se à 6ta sessão já n deviamos mudar session_date
+        if api_controller is None:
+            raise AttributeError("Error! Must provide an wallet controller "
+                                 "to process payments.")
         api_controller.create_market_session(
             session_number=self.mkt_sess.session_number + 1,
-            market_price=market_price_,
-            b_min=b_min_,
-            b_max=b_max_,
+            market_price=self.mkt_sess.next_market_price,
+            b_min=self.mkt_sess.b_min,
+            b_max=self.mkt_sess.b_max,
             n_price_steps=self.mkt_sess.n_price_steps,
             delta=self.mkt_sess.delta
         )

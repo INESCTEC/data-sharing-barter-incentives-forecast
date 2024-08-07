@@ -27,6 +27,7 @@ market_validate_bids = endpoint(*http_methods, "/api/market/validate/bid-payment
 market_transfer_out = endpoint(*http_methods, "/api/market/transfer-out")
 market_payment = endpoint(*http_methods, "/api/market/payment")
 market_price_weight = endpoint(*http_methods, "/api/market/price-weight")
+payment_processor = endpoint(*http_methods, "/api/market/payment-processor")
 
 
 @dataclass(frozen=True)

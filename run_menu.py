@@ -16,11 +16,13 @@ from src.api.exception.APIException import (
     MarketWalletAddressException,
     MarketAccountException
 )
-
 # logger:
 format = "{time:YYYY-MM-DD HH:mm:ss} | {level:<5} | {message}"
 logger.add("files/logfile.log", format=format, level='DEBUG', backtrace=True)
 logger.info("-" * 79)
+
+PAYMENT_TYPE = "ERC20"
+wallet = WalletController(payment_type=PAYMENT_TYPE)  # todo: ricardo fetch payment_type from REST API
 
 
 def main_no_installation():
@@ -71,8 +73,6 @@ def installation_menu():
     print("This will create a new market wallet & account.")
     choice = input("Proceed? (Y/n)")
     if choice.lower() == "y":
-        wallet = WalletController()
-        wallet.create_wallet(store_mnemonic=True)
         wallet.create_account()
         address = wallet.get_address()
         print("Market Wallet address (use it to transfer tokens):")
@@ -254,8 +254,6 @@ def market_menu():
 
 
 def wallet_menu():
-    wallet = WalletController()
-
     while True:
         _clear_console()
         print("     Wallet OPS MENU")
@@ -277,21 +275,22 @@ def wallet_menu():
         elif choice == "2":
             # Approve buyers bids:
             try:
-                balance = wallet.get_balance()
-                print(f"Wallet Balance: {balance}i")
+                balance, unit = wallet.get_balance()
+                print(f"Wallet Balance: {balance} {unit}")
             except Exception as ex:
                 logger.exception(repr(ex))
         elif choice == "3":
             # Close market session (no more bids):
             try:
-                amount = input("Enter transfer amount "
-                               "(use 'FB' keyword for full balance "
-                               "transfer): ")
-                if amount.lower() == "fb":
-                    amount = wallet.get_balance()['baseCoin']['available']
+                amount_str = input("Enter transfer amount (use 'FB' keyword for full balance transfer): ")
+
+                if amount_str.lower() == "fb":
+                    amount, _ = wallet.get_balance()
                 else:
-                    amount = int(amount)
+                    amount = int(amount_str)
+
                 out_address = input("Enter output address: ")
+
                 # -- initialize WALLET controller:
                 node_response = wallet.transfer_tokens(
                     amount=amount,
@@ -325,6 +324,7 @@ def _sep():
 
 if __name__ == '__main__':
     wallet_path = os.path.join(settings.WALLET_STORAGE_PATH)
-    if not os.path.exists(wallet_path):
+    wallet_erc20_path = os.path.join("private_key.txt")  # Todo: fix this should not be in the project root.
+    if (not os.path.exists(wallet_path)) and (not os.path.exists(wallet_erc20_path)):
         main_no_installation()
     main()
