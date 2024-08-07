@@ -118,7 +118,6 @@ class MarketClass:
             )
 
     def end_session(self, api_controller=None):
-        # todo: check api responses
         self.mkt_sess.end_session()
         if api_controller is not None:
             api_controller.update_market_session(
