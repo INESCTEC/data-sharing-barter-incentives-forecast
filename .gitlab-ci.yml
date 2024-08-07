@@ -8,29 +8,25 @@ variables:
   POETRY_VIRTUALENVS_CREATE: 'false'
   POETRY_CACHE_DIR: '/var/cache/pypoetry'
   POETRY_HOME: '/usr/local'
-
+  GITLAB_TOKEN: 'glpat-N6a3yxvc6rKzT17bVZX4'
 
 lint:
   stage: lint
   image: python:${PYTHON_VERSION}
-  before_script:
-    # Configure git to use the token for your GitLab instance
-    - git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
+    - poetry config http-basic.gitlab-payment __token__ $GITLAB_TOKEN
     - poetry install --with test
     - flake8
 
 test:
   stage: test
   image: python:${PYTHON_VERSION}
-  before_script:
-    # Configure git to use the token for your GitLab instance
-    - git config --global url."https://oauth2:$GITLAB_TOKEN@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
   script:
     - python -m pip install --upgrade pip
     - pip install poetry
+    - poetry config http-basic.gitlab-payment __token__ $GITLAB_TOKEN
     - poetry install --with test
     - cd src/market
     - pytest --cov
