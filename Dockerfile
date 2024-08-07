@@ -15,15 +15,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Accept GITLAB_TOKEN as a build-time argument
 ARG GITLAB_TOKEN
 
-# Use the argument to set the Git configuration for HTTPS cloning
-RUN git config --global url."https://oauth2:${GITLAB_TOKEN}@gitlab.inesctec.pt/".insteadOf "https://gitlab.inesctec.pt/"
-
 RUN apt-get update && apt-get install -y build-essential
 
 # install required packages
 # copy requirements
 COPY poetry.lock pyproject.toml /app/
 RUN pip install poetry && poetry install
+RUN poetry config http-basic.gitlab-payment __token__ ${GITLAB_TOKEN}
 
 # copy project
 COPY . /app
