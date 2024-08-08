@@ -28,7 +28,7 @@ class MarketController:
         self.api.login(email=settings.MARKET_EMAIL,
                        password=settings.MARKET_PASSWORD)
         self.payment_type = self.api.get_market_payment_processor()["base_unit"]
-        self.payment_type = "IOTA" if self.payment_type == "IOTA" else "ERC20"
+        self.payment_type = "IOTA" if self.payment_type == "SMR" else "ERC20"
         # Market Wallet Controller:
         self.wallet = WalletController(payment_type=self.payment_type)
 
