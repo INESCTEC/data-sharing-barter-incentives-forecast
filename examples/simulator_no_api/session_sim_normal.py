@@ -9,10 +9,6 @@ from loguru import logger
 # -- If needed to run via command line, add root proj to sys path:
 # sys.path.append(r"<path_to_project>/data-sharing-barter-incentives-forecast")
 from src.market import MarketClass
-from src.market.helpers.units_helpers import (
-    convert_session_data_to_mi,
-    convert_buyers_bids_to_mi,
-)
 
 from simulation import SessionGenerator, AgentsLoader, SimulatorManager
 
@@ -85,12 +81,6 @@ if __name__ == '__main__':
         price_weights = sg.price_weights
         bids_per_resource = ag.bids_per_resource
         users_resources = ag.users_resources
-
-        ###################################
-        # Convert units from IOTA to MIOTA:
-        # ####################################
-        session_data = convert_session_data_to_mi(data=session_data)
-        bids_per_resource = convert_buyers_bids_to_mi(bids=bids_per_resource)
 
         # ################################
         # Run Market Session

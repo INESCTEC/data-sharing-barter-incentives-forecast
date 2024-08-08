@@ -7,8 +7,8 @@ import datetime as dt
 
 class SessionGenerator:
     session_number = 1
-    b_min = 0.5 * 10 ** 6  # Minimum market price
-    b_max = 10 * 10 ** 6  # Maximum market price
+    b_min = 0.5  # Minimum market price
+    b_max = 10.0   # Maximum market price
     n_price_steps = 20  # Number of price steps
     delta = 0.05  # Learning rate for price updates
     possible_p = np.linspace(start=b_min,
