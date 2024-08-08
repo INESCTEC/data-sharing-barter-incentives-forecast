@@ -295,7 +295,7 @@ class MarketController:
             mc = MarketClass(n_jobs=settings.N_JOBS,
                              auto_feature_selection=False,
                              auto_feature_engineering=True,
-                             enable_db_uploads=False)
+                             enable_db_uploads=True)
             mc.init_session(
                 session_data=session_data,
                 price_weights=price_weights,
