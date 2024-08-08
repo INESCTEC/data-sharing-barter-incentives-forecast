@@ -20,8 +20,9 @@ RUN apt-get update && apt-get install -y build-essential
 # install required packages
 # copy requirements
 COPY poetry.lock pyproject.toml /app/
-RUN pip install poetry && poetry install
+RUN pip install poetry
 RUN poetry config http-basic.gitlab-payment __token__ ${GITLAB_TOKEN}
+RUN poetry install
 
 # copy project
 COPY . /app
