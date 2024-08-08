@@ -205,10 +205,11 @@ class MarketController:
                 continue
 
             try:
+                max_payment_amount = self.wallet.base_to_transaction_units(b["max_payment"])
                 valid_txn = self.wallet.validate_transaction_id(
                     transaction_id=b["transaction_id"],
                     to_address=market_wallet_address,
-                    amount=b["max_payment"]
+                    amount=max_payment_amount
                 )
 
                 if valid_txn:
