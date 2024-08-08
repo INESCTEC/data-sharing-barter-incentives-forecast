@@ -613,10 +613,11 @@ class MarketController:
 
         all_successful = True
         for tid in transfer_list:
+            transfer_amount = self.wallet.base_to_transaction_units(tid["amount"])
             valid_txn = self.wallet.validate_transaction_id(
                 transaction_id=tid["transaction_id"],
                 to_address=tid["user_wallet_address"],
-                amount=tid["amount"]
+                amount=transfer_amount
             )
 
             if valid_txn:
