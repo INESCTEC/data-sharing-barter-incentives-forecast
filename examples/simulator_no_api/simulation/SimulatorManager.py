@@ -126,7 +126,8 @@ class SimulatorManager:
         self.sellers_results_fields = ['session_id',
                                        'user_id',
                                        'resource_id',
-                                       'has_to_receive']
+                                       'has_to_receive',
+                                       'shapley_value']
 
     def add_session_reports(self,
                             session_id,

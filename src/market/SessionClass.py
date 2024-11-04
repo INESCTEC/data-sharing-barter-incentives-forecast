@@ -101,16 +101,16 @@ class SessionClass(ValidatorClass):
     @property
     def seller_revenue_per_user(self):
         # Get list of payments per user_id
-        users_ = [(x['user_id'], x["has_to_receive"])
+        users_ = [(x['user_id'], x["has_to_receive"], x["shapley_value"])
                   for x in self.sellers_results.values()]
 
         # Create a dictionary to store the sum of second elements
         # for each first element
         result = {}
-        for key, value in users_:
-            result[key] = result.get(key, 0) + value
+        for key, has_to_receive, sv in users_:
+            result[key] = (result.get(key, 0) + has_to_receive, result.get(key, 0) + sv)
 
-        output = [{"user": key, "has_to_receive": value}
+        output = [{"user": key, "has_to_receive": value[0], "shapley_value": value[1]}
                   for key, value in result.items()]
 
         return output
