@@ -1,11 +1,11 @@
-version: "3.7"
 services:
 
   app:
     build:
       context: .
       args:
-        - GITLAB_TOKEN=glpat-N6a3yxvc6rKzT17bVZX4
+        - GITLAB_TOKEN=${GITLAB_TOKEN}
+    platform: linux/amd64
     container_name: predico-forecast
     volumes:
       - storage:/app/files

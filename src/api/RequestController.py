@@ -16,9 +16,12 @@ class RequestController:
 
     def __init__(self, config):
         self.retries = int(config.get('N_REQUEST_RETRIES', 3))
-        self.remote_host = config.get("RESTAPI_HOST", None)
-        self.remote_port = config.get("RESTAPI_PORT", None)
-        self.remote_uri = f"http://{self.remote_host}:{self.remote_port}"
+        self.remote_host = config.get("RESTAPI_HOST")
+        self.remote_port = config.get("RESTAPI_PORT")
+        self.protocol = config.get("RESTAPI_PROTOCOL", "https")  # default to https
+        print(self.protocol)
+        self.remote_uri = f"{self.protocol}://{self.remote_host}:{self.remote_port}"
+
         self.headers = {
             'content-type': 'application/json'
         }

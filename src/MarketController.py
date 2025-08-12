@@ -198,32 +198,32 @@ class MarketController:
         market_wallet_address = self.api.get_market_wallet_address()
 
         for b in bids:
-            logger.info(f"Validating bid {b['id']} - {b['transaction_id']}")
-
-            if b["transaction_id"] is None:
-                logger.error(f"Bid {b['id']} does not have a transaction_id.")
-                continue
+            # logger.info(f"Validating bid {b['id']} - {b['transaction_id']}")
+            #
+            # if b["transaction_id"] is None:
+            #     logger.error(f"Bid {b['id']} does not have a transaction_id.")
+            #     continue
 
             try:
                 max_payment_amount = self.wallet.base_to_transaction_units(b["max_payment"])
                 valid_txn = self.wallet.validate_transaction_id(
-                    transaction_id=b["transaction_id"],
+                    transaction_id=b["tangle_msg_id"],
                     to_address=market_wallet_address,
                     amount=max_payment_amount
                 )
 
                 if valid_txn:
                     rsp = self.api.post_validate_bid(
-                        transaction_id=b["transaction_id"]
+                        transaction_id=b["tangle_msg_id"]
                     )
                     logger.info(f"Validating bid {b['id']} - "
-                                f"{b['transaction_id']} ... Ok!")
+                                f"{b['tangle_msg_id']} ... Ok!")
                     logger.debug(rsp)
 
             except Exception as ex:
                 logger.error(ex)
                 logger.exception(f"Validating bid {b['id']} - "
-                                 f"{b['transaction_id']} ... Failed!")
+                                 f"{b['tangle_msg_id']} ... Failed!")
 
     def close_market_session(self):
         """
@@ -580,12 +580,20 @@ class MarketController:
             return False
 
         # Register each transfer in DB:
+        successful_transfers = []
+
         for txn in transactions:
             user_id = txn["user_id"]
             amount = txn["amount"]
             address = txn["to_identifier"]
-            transaction_id = txn["transaction_id"]
+            transaction_id = txn.get("transaction_id")
+
+            if not transaction_id:
+                logger.warning(f"Skipping transaction without ID for user {user_id}")
+                continue
+
             amount = self.wallet.transaction_to_base_units(amount)
+
             try:
                 transfer_data = self.api.post_transfer_out(
                     user_id=user_id,
@@ -593,10 +601,13 @@ class MarketController:
                     transaction_id=transaction_id,
                     user_wallet_address=address
                 )
+                successful_transfers.append(transfer_data)
                 logger.debug(transfer_data)
             except WalletTransferOutException:
                 logger.exception("Failed to register tokens transfer out action.")
                 continue
+
+        return successful_transfers
 
     def validate_tokens_transfer(self):
         """

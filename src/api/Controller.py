@@ -15,6 +15,7 @@ class Controller(RequestController):
     seller_role_id = 2
     config = {
         "N_REQUEST_RETRIES": settings.N_REQUEST_RETRIES,
+        "RESTAPI_PROTOCOL": settings.RESTAPI_PROTOCOL,
         "RESTAPI_HOST": settings.RESTAPI_HOST,
         "RESTAPI_PORT": settings.RESTAPI_PORT,
     }
@@ -364,8 +365,8 @@ class Controller(RequestController):
         )
         return response["data"]
 
-    def post_validate_bid(self, transaction_id):
-        payload = {"transaction_id": transaction_id}
+    def post_validate_bid(self, transaction_id: str):
+        payload = {"tangle_msg_id": transaction_id}
         response = self.__request_template(
             endpoint_cls=Endpoint(market_validate_bids.POST,
                                   market_validate_bids.uri),

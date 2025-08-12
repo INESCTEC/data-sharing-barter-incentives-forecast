@@ -32,6 +32,7 @@ FILE_DIR = os.getenv('FILE_DIR', 'files')
 WALLET_BACKUP_PATH = os.path.join(os.getenv('WALLET_BACKUP_PATH', 'files'), 'backup.db')
 
 # REST Configs:
+RESTAPI_PROTOCOL = os.environ.get('RESTAPI_PROTOCOL', "https")  # default to https
 RESTAPI_HOST = os.environ.get('RESTAPI_HOST', "")
 RESTAPI_PORT = os.environ.get('RESTAPI_PORT', "")
 N_REQUEST_RETRIES = os.environ.get('N_REQUEST_RETRIES', 3)
@@ -66,7 +67,7 @@ DATABASES = {
 # Market Session - First Session Configs:
 class FirstSessionConfigs:
     session_number = 1
-    b_min = 0.5         # Minimum market price
+    b_min = 1         # Minimum market price
     b_max = 10          # Maximum market price
     n_price_steps = 20  # Number of price steps
     delta = 0.05        # Learning rate for price updates
