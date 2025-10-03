@@ -366,7 +366,7 @@ class Controller(RequestController):
         return response["data"]
 
     def post_validate_bid(self, transaction_id: str):
-        payload = {"tangle_msg_id": transaction_id}
+        payload = {"transaction_id": transaction_id}
         response = self.__request_template(
             endpoint_cls=Endpoint(market_validate_bids.POST,
                                   market_validate_bids.uri),

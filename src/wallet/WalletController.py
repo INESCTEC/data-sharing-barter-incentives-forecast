@@ -49,13 +49,9 @@ class WalletController:
     alias = settings.WALLET_NAME
 
     def __init__(self, payment_type):
-        print("Payment type:", payment_type)
+        logger.info(f"Payment type: {payment_type}")
         try:
-            if payment_type == "IOTA":
-                self.controller = IOTAPaymentController(
-                    config=wallet_config(),
-                )
-            elif payment_type == "ERC20":
+            if payment_type == "ERC20":
                 config = smart_contract_config()
                 provider_url = settings.WEB3_PROVIDER_URL
                 if not provider_url:

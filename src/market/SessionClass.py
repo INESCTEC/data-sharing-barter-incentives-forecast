@@ -8,8 +8,8 @@ from .helpers.class_helpers import ValidatorClass
 
 @dataclass()
 class SessionClass(ValidatorClass):
-    b_min: Union[float, np.float64] = None                # Minimum market price
-    b_max: Union[float, np.float64] = None                # Maximum market price
+    b_min: Union[int, np.int64] = None                # Minimum market price
+    b_max: Union[int, np.int64] = None                # Maximum market price
     market_price: Union[float, np.float64] = None         # Session Market Price
     next_market_price: Union[float, np.float64] = None    # Next session market price
     status: str = None                      # Session status

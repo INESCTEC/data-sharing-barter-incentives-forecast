@@ -207,23 +207,23 @@ class MarketController:
             try:
                 max_payment_amount = self.wallet.base_to_transaction_units(b["max_payment"])
                 valid_txn = self.wallet.validate_transaction_id(
-                    transaction_id=b["tangle_msg_id"],
+                    transaction_id=b["transaction_id"],
                     to_address=market_wallet_address,
                     amount=max_payment_amount
                 )
 
                 if valid_txn:
                     rsp = self.api.post_validate_bid(
-                        transaction_id=b["tangle_msg_id"]
+                        transaction_id=b["transaction_id"]
                     )
                     logger.info(f"Validating bid {b['id']} - "
-                                f"{b['tangle_msg_id']} ... Ok!")
+                                f"{b['transaction_id']} ... Ok!")
                     logger.debug(rsp)
 
             except Exception as ex:
                 logger.error(ex)
                 logger.exception(f"Validating bid {b['id']} - "
-                                 f"{b['tangle_msg_id']} ... Failed!")
+                                 f"{b['transaction_id']} ... Failed!")
 
     def close_market_session(self):
         """

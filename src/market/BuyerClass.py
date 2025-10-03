@@ -13,8 +13,8 @@ class BuyerClass(ValidatorClass):
     resource_id: Union[int, str] = None             # Bid resource identifier
     user_id: Union[int, str] = None                 # Bid user identifier
     gain_func: str = None               # Bid gain function
-    initial_bid: Union[float, np.float64] = None      # Bid initial bid_price
-    max_payment: Union[float, np.float64] = None      # Bid max payment
+    initial_bid: Union[int, np.int64] = None      # Bid initial bid_price
+    max_payment: Union[int, np.int64] = None      # Bid max payment
     final_bid: np.float64 = None        # Bid final bid (adjusted by market)
     y: pd.DataFrame = None              # Bid resource measurements time-series
     has_to_pay: np.float64 = np.float64(0.0)  # Payment amount to bid user
