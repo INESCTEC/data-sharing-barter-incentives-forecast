@@ -396,7 +396,7 @@ class Controller(RequestController):
         payload = {
             "user": user_id,
             "amount": amount,
-            "tangle_msg_id": transaction_id,
+            "transaction_id": transaction_id,
             "user_wallet_address": user_wallet_address,
         }
         response = self.__request_template(
