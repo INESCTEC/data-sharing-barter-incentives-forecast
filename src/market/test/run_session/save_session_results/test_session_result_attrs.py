@@ -29,6 +29,7 @@ def test_buyers_and_sellers_results_attrs(market_session_2u_2r):
     for seller, res in mc.mkt_sess.sellers_results.items():
         assert sorted(res.keys()) == ['has_to_receive',
                                       'resource_id',
+                                      'shapley_value',
                                       'user_id']
         assert len([k for k, v in res.items() if v is None]) == 0
         assert res["has_to_receive"] >= 0

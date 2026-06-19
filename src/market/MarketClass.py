@@ -730,7 +730,9 @@ class MarketClass:
                 )
                 for seller_id in sellers_revenue_split.keys():
                     _r = sellers_revenue_split[seller_id].get("abs_revenue", 0)
+                    _sv = sellers_revenue_split[seller_id].get("shapley_value", 0)
                     self.sellers_data[seller_id].increment_revenue(_r)
+                    self.sellers_data[seller_id].increment_shapley_value(_sv)
                 logger.debug("Storing revenue in sellers class ... Ok!")
                 logger.debug(f"Distributing revenue ... Ok! "
                              f"({time() - t0:.2f}s)")
@@ -756,12 +758,14 @@ class MarketClass:
         deposits = [v["max_payment"] for k, v in self.mkt_sess.buyers_results.items()]
         payments = [v["has_to_pay"] for k, v in self.mkt_sess.buyers_results.items()]
         revenues = [v["has_to_receive"] for k, v in self.mkt_sess.sellers_results.items()]
+        sv = [v["shapley_value"] for k, v in self.mkt_sess.sellers_results.items()]
         logger.info("")
         logger.info("Validating session results:")
         logger.debug("Market fee:", self.mkt_sess.total_market_fee)
         logger.debug(f"Buyers deposits: {deposits} // Total: {sum(deposits)}")
         logger.debug(f"Buyers payments: {payments} // Total: {sum(payments)}")
         logger.debug(f"Sellers revenue: {revenues} // Total: {sum(revenues)}")
+        logger.debug(f"Sellers shapley values: {sv} // Total: {sum(sv)}")
         logger.debug(f"Market fee: {fee}")
         result = sum(payments) - fee - sum(revenues)
         logger.debug(f"""
